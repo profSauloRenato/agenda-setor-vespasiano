@@ -1,6 +1,7 @@
 // src/data/repositories/SupabaseAuthService.ts
 
 import { supabase } from "../../config/supabaseClient";
+import { InvalidCredentialsError, UserNotAuthorizedError, UserNotFoundError } from "../../domain/errors/DomainError";
 import { IUsuario } from "../../domain/models/IUsuario";
 import { IAuthService } from "../protocols/IAuthService";
 
@@ -19,17 +20,27 @@ export class SupabaseAuthService implements IAuthService {
       });
 
       if (error) {
-        // Lança o erro para ser tratado na camada de apresentação (View-Model/Tela)
-        throw new Error(`Erro de Login: ${error.message}`); 
+        // --- NOVO TRATAMENTO DE ERROS DO SUPABASE ---
+        // O Supabase usa um código de status 400 ou 401 para credenciais inválidas.
+        // O erro geralmente vem com a mensagem 'Invalid login credentials'.
+        if (error.status === 400 || error.message.includes('Invalid login credentials')) {
+            throw new InvalidCredentialsError();
+        }
+        // Para qualquer outro erro de rede/servidor, lançamos o erro genérico
+        throw new Error(`Erro desconhecido no Login: ${error.message}`); 
       }
 
-      // Após o login bem-sucedido, carrega os dados estendidos do usuário
-      // (como nome, cargos, e status de admin)
-      return this.loadExtendedUserData(data.user?.id);
+      const user = await this.loadExtendedUserData(data.user?.id);
+      
+      if (!user) {
+         throw new UserNotFoundError(); // Lança o erro de que o perfil não existe
+      }
+      
+      return user;
 
     } catch (error) {
       console.error("Erro no SupabaseAuthService.login:", error);
-      return null;
+      throw error;
     }
   }
 
@@ -111,23 +122,64 @@ export class SupabaseAuthService implements IAuthService {
     
     const { data, error } = await supabase
         .from('usuario')
-        .select(`id, nome, email, localizacao_id`)
+        .select(`
+          id,
+          nome,
+          email,
+          localizacao_id,
+          usuario_cargos (
+            cargo (
+              nome
+            )
+          )
+          `)
         .eq('id', userId)
         .single();
-    
-    if (error || !data) {
-        console.error("Erro ao carregar dados estendidos:", error);
-        return null;
+
+    if (error) {
+        // Se houver erro de Supabase na consulta, o console.error mostrará o erro SQL real.
+        console.error("ERRO CRÍTICO SUPABASE NA CONSULTA:", error);
+        throw new UserNotFoundError();
     }
 
-    const rawData = data as DBSchemaUsuario;
+    if (!data) {
+        console.error("ERRO CRÍTICO: Dados de usuário nulos após a consulta.");
+        throw new UserNotFoundError();
+    }
+
+    // 1. EXTRAÇÃO DOS CARGOS: O Supabase retorna os cargos aninhados
+    const cargosUsuario = data.usuario_cargos.map((link: any) => link.cargo.nome);
+
+    // String de referência
+    const adminStringEsperada = 'administrador do sistema';
     
-    // Por enquanto, retorna uma versão básica. Isso será refatorado na Fase 2
-    // após a criação da view/funções SQL no Supabase.
+    // 2. CÁLCULO DA PROPRIEDADE is_admin (MÉTODO DEFINITIVO: Normalização Unicode)
+    // Aplica normalize('NFC'), trim() e toLowerCase() para máxima robustez na checagem.
+    const isAdmin = cargosUsuario.some(cargoNome => {
+        
+        // Usamos 'as string' para garantir que o TypeScript saiba que é uma string.
+        const cargoNormalizado = (cargoNome as string)
+            .normalize('NFC') // Normalização Unicode para resolver caracteres invisíveis
+            .trim()          // Remove espaços de borda
+            .toLowerCase();  // Garante que a capitalização seja ignorada
+        
+        return cargoNormalizado === adminStringEsperada;
+    });
+
+    // TRATAMENTO DA FALHA REAL
+    if (!isAdmin) {
+        // Se o cálculo falhar, lançamos o erro que você está vendo
+        throw new UserNotAuthorizedError("Você não tem permissão para visualizar a lista de cargos.");
+    }
+
+    // 3. Mapeamento final para o modelo de Domínio (IUsuario)
     return {
-        ...rawData,
-        is_admin: false, // MOCK: Será true ou false baseado na função SQL real
-        cargos: [],      // MOCK: Será a lista de IDs de cargos reais
+      id: data.id,
+      nome: data.nome,
+      email: data.email,
+      localizacao_id: data.localizacao_id,
+      cargos: cargosUsuario,
+      is_admin: isAdmin,     // <--- PROPRIEDADE CALCULADA
     } as IUsuario;
   }
 }
