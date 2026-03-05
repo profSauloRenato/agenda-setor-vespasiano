@@ -1,12 +1,16 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from '@env';
-import { createClient } from '@supabase/supabase-js';
-import * as SecureStore from 'expo-secure-store'; // Para armazenar o JWT com segurança
-import 'react-native-url-polyfill/auto'; // Importa polyfills necessários para RN
+// src\config\supabaseClient.ts
+
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@env";
+import { createClient } from "@supabase/supabase-js";
+import * as SecureStore from "expo-secure-store"; // Para armazenar o JWT com segurança
+import "react-native-url-polyfill/auto"; // Importa polyfills necessários para RN
 
 // ----------------------------------------------------------------
 // Verificação de segurança: Garantir que as chaves foram carregadas
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  throw new Error("As variáveis de ambiente SUPABASE_URL ou SUPABASE_ANON_KEY não foram carregadas. Verifique o arquivo .env e a configuração do babel.config.js.");
+  throw new Error(
+    "As variáveis de ambiente SUPABASE_URL ou SUPABASE_ANON_KEY não foram carregadas. Verifique o arquivo .env e a configuração do babel.config.js.",
+  );
 }
 // ----------------------------------------------------------------
 
@@ -21,12 +25,12 @@ const SecureStoreAdapter = {
     return SecureStore.getItemAsync(key);
   },
   // Salva o token JWT seguro
-  setItem: (key: string, value: string) => {
-    SecureStore.setItemAsync(key, value);
+  setItem: async (key: string, value: string) => {
+    return SecureStore.setItemAsync(key, value);
   },
   // Remove o token JWT
-  removeItem: (key: string) => {
-    SecureStore.deleteItemAsync(key);
+  removeItem: async (key: string) => {
+    return SecureStore.deleteItemAsync(key);
   },
 };
 
@@ -39,7 +43,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     storage: SecureStoreAdapter,
     autoRefreshToken: true, // Garante que a sessão seja renovada automaticamente
-    persistSession: true,   // Mantém a sessão ativa entre reinicializações do App
+    persistSession: true, // Mantém a sessão ativa entre reinicializações do App
     detectSessionInUrl: false, // Necessário para evitar problemas em ambientes móveis
   },
 });

@@ -1,51 +1,78 @@
 // src/presentation/context/AuthContext.tsx
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { supabase } from '../../config/supabaseClient';
 import { serviceLocator } from '../../config/serviceLocator';
 import { IUsuario } from '../../domain/models/IUsuario';
 
-// 1. Definição do Contrato do Contexto
 interface AuthContextType {
   user: IUsuario | null;
   isLoading: boolean;
-  signIn: (usuario: IUsuario) => void; // Chamado pelo LoginViewModel
+  signIn: (usuario: IUsuario) => void;
   signOut: () => void;
 }
 
-// 2. Criação do Contexto
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// 3. Provider do Contexto
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // O estado principal é o usuário logado
   const [user, setUser] = useState<IUsuario | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Função para logar (chamada pelo View-Model)
-  const signIn = (usuario: IUsuario) => {
+  const signIn = async (usuario: IUsuario) => {
     setUser(usuario);
-    // Aqui poderíamos salvar o usuário em um storage (AsyncStorage, etc.)
+    // Registra o token de notificação após login
+    try {
+      const token = await serviceLocator.notificationService.registerForPushNotifications();
+      if (token) {
+        await serviceLocator.notificationService.saveDeviceToken(usuario.id, token);
+      }
+    } catch (e) {
+      console.error("Erro ao registrar token de notificação:", e);
+    }
   };
 
-  // Função para fazer logout
-  const signOut = () => {
+  const signOut = async () => {
+    // Remove o token antes de deslogar
+    if (user) {
+      try {
+        await serviceLocator.notificationService.removeDeviceToken(user.id);
+      } catch (e) {
+        console.error("Erro ao remover token:", e);
+      }
+    }
     setUser(null);
-    serviceLocator.authService.logout(); // Chama o serviço para limpar a sessão no Supabase
+    serviceLocator.authService.logout();
   };
 
-  // Efeito para checar o usuário logado no início do app
   useEffect(() => {
+    // 1. Verifica se já existe uma sessão salva ao abrir o app
     const checkSession = async () => {
       try {
         const loggedUser = await serviceLocator.authService.getLoggedUser();
         setUser(loggedUser);
       } catch (e) {
         console.error("Erro ao checar sessão inicial:", e);
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
     };
+
     checkSession();
+
+    // 2. Fica escutando mudanças de sessão do Supabase em tempo real
+    // Isso garante que se o token expirar ou o usuário for deslogado,
+    // o app reage automaticamente — sem precisar reiniciar.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+      }
+    });
+
+    // 3. Cancela o listener quando o componente for desmontado
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (
@@ -55,7 +82,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-// 4. Hook de Conveniência
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

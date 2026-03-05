@@ -1,30 +1,35 @@
-// Define a interface ILocalizacao (Modelo de Hierarquia de Localização)
-// Esta entidade representa as Congregações, Setores e Regionais,
-// sendo fundamental para o RBAC e segmentação de usuários.
+// src/domain/models/ILocalizacao.ts
 
+// 1. VALORES DE TEMPO DE EXECUÇÃO (Runtime)
+// Usamos 'as const' para criar uma tupla de strings, que o TypeScript
+// reconhecerá como valores literais fixos.
+
+export const LOCALIZACAO_TIPOS_LISTA = [
+  "Regional",
+  "Administração", // Corrigido
+  "Setor",
+  "Congregação",
+] as const;
+
+// 2. TIPO DE COMPILAÇÃO (Compile-Time)
+// Derivamos o tipo estrito a partir da lista de valores.
+// Isso garante que o tipo e o valor estejam sempre sincronizados.
+export type LocalizacaoTipo = (typeof LOCALIZACAO_TIPOS_LISTA)[number];
+
+// 3. INTERFACE PRINCIPAL (A ser completada)
 export interface ILocalizacao {
-  // O 'id' da localização, um UUID que serve como chave primária.
-  id: string; 
-
-  // Nome da localização (ex: "Setor Vespasiano", "Congregação Morro Alto").
-  // Deve ser UNIQUE no banco de dados.
+  id: string;
   nome: string;
-
-  // Tipo da localização ('Regional', 'Setor' ou 'Congregacao').
-  // Ajuda a montar a hierarquia de forma programática.
-  tipo: 'Regional' | 'Setor' | 'Congregacao'; 
-
-  // ID da localização "mãe" na hierarquia (ex: o Setor pai de uma Congregação).
-  // É uma Foreign Key (FK) para a própria tabela 'localizacao', permitindo a hierarquia.
-  parent_id: string | null; // Pode ser nulo se for a raiz (ex: uma Regional)
-
-  // --------------------------------------------------------------------
-  // Propriedades Estendidas (Opcionais para a UI/Lógica de Negócio)
-  // --------------------------------------------------------------------
-
-  // Opcional: Adiciona o nome da localização pai para exibição rápida na UI.
-  nome_pai?: string;
-
-  // Opcional: Lista de localizações filhas (Congregações) para montar a árvore hierárquica na UI (Admin).
-  filhas?: ILocalizacao[];
+  tipo: LocalizacaoTipo; // Usando o tipo derivado
+  parent_id: string | null; // ... (outros campos como endereço, etc.)
+  endereco_rua: string | null;
+  endereco_numero: string | null;
+  endereco_bairro: string | null;
+  endereco_cidade: string | null;
+  endereco_estado: string | null;
+  endereco_cep: string | null;
+  sede_congregacao_id?: string | null;
 }
+
+// Nota: Você precisará importar e usar LOCALIZACAO_TIPOS_LISTA
+// na camada de Apresentação para preencher selects e em handleCreate.
