@@ -4,6 +4,7 @@ import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { SupabaseClient } from "@supabase/supabase-js";
+import Constants from "expo-constants";
 
 // Configura como as notificações aparecem quando o app está aberto
 Notifications.setNotificationHandler({
@@ -20,6 +21,12 @@ export class NotificationService {
 
   // Solicita permissão e retorna o token do dispositivo
   async registerForPushNotifications(): Promise<string | null> {
+    // Expo Go não suporta push notifications (SDK 53+)
+    if (Constants.appOwnership === "expo") {
+      console.log("Expo Go detectado — push notifications desabilitado.");
+      return null;
+    }
+
     if (!Device.isDevice) {
       console.log("Push notifications não funcionam em emulador.");
       return null;
