@@ -16,9 +16,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.setorvespasiano.agenda",
       "infoPlist": {
-        "UIBackgroundModes": [
-          "remote-notification"
-        ]
+        "UIBackgroundModes": ["remote-notification"]
       }
     },
     "android": {
@@ -33,10 +31,7 @@
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
         "android.permission.POST_NOTIFICATIONS"
-      ],
-      "buildProperties": {
-        "gradleVersion": "8.10.2"
-      }
+      ]
     },
     "web": {
       "favicon": "./src/presentation/assets/favicon.png"
