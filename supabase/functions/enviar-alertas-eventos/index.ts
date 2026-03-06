@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
       // Busca tokens de usuários que têm cargo visível E pertencem à localização correta
       const { data: tokens } = await supabase
         .from("usuario_tokens")
-        .select("token, usuario:usuario_id (localizacao_id, usuario_cargos(cargo_id))")
+        .select("token, usuario:usuario_id (nome, localizacao_id, usuario_cargos(cargo_id))")
         .in("usuario.localizacao_id", localizacaoIds);
 
       if (!tokens || tokens.length === 0) continue;
@@ -63,15 +63,15 @@ Deno.serve(async (req) => {
           const cargosUsuario = (t.usuario?.usuario_cargos ?? []).map((c: any) => c.cargo_id);
           return cargosUsuario.some((c: string) => cargosVisiveis.includes(c));
         })
-        .map((t: any) => t.token);
+        .map((t: any) => ({ token: t.token, nome: t.usuario?.nome ?? "Irmão(ã)" }));
 
       if (tokensFiltrados.length === 0) continue;
 
       // Envia push via Expo Push API
-      const messages = tokensFiltrados.map((token: string) => ({
+      const messages = tokensFiltrados.map(({ token, nome }: { token: string, nome: string }) => ({
         to: token,
         title: evento.titulo,
-        body: `Lembrete: ${evento.tipo} em ${formatarData(dataEvento)}`,
+        body: `A Paz de Deus, irmão ${nome}! Passando para lembrar do nosso compromisso: ${evento.tipo} ${formatarData(dataEvento)}. Contamos com sua presença!`,
         data: { evento_id: evento.id },
       }));
 
@@ -124,11 +124,26 @@ async function getLocalizacoesFilhas(supabase: any, localizacaoId: string | null
 }
 
 function formatarData(data: Date): string {
-  return data.toLocaleDateString("pt-BR", {
+  const hoje = new Date();
+  const amanha = new Date();
+  amanha.setDate(hoje.getDate() + 1);
+
+  const mesmodia = (a: Date, b: Date) =>
+    a.getDate() === b.getDate() &&
+    a.getMonth() === b.getMonth() &&
+    a.getFullYear() === b.getFullYear();
+
+  const hora = data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+  if (mesmodia(data, hoje)) {
+    return `hoje às ${hora}`;
+  } else if (mesmodia(data, amanha)) {
+    return `amanhã às ${hora}`;
+  }
+
+  return `em ${data.toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  })} às ${data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
 }
