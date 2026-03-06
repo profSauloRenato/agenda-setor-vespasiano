@@ -67,12 +67,17 @@ export const useLoginViewModel = (loginUserUseCase: ILoginUser, notificationServ
 
         // Registra token de push após login
         try {
+          console.log("Iniciando registro de token de push...");
           const token = await notificationService.registerForPushNotifications();
+          console.log("Token obtido:", token);
           if (token) {
             await notificationService.saveDeviceToken(user.id, token);
+            console.log("Token salvo com sucesso!");
+          } else {
+            console.log("Token nulo — push não registrado.");
           }
         } catch (e) {
-          console.log("Erro ao registrar token de push:", e);
+          console.error("Erro ao registrar token de push:", e);
         }
 
         setState((prev) => ({ ...prev, isLoggedIn: true, isLoading: false }));
