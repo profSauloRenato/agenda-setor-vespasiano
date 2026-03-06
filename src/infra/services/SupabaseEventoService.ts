@@ -1,7 +1,7 @@
 // src/infra/services/SupabaseEventoService.ts
 
 import { SupabaseClient } from "@supabase/supabase-js";
-import { IEvento } from "../../domain/models/IEvento";
+import { IEvento, IEventoAlerta } from "../../domain/models/IEvento";
 import { IEventoService } from "../../domain/services/IEventoService";
 import {
   CreateEventoParams,
@@ -10,6 +10,7 @@ import {
 
 export class SupabaseEventoService implements IEventoService {
   private readonly DB_TABLE = "evento";
+  private readonly ALERTA_TABLE = "evento_alerta";
 
   constructor(private readonly supabase: SupabaseClient) {}
 
@@ -46,61 +47,50 @@ export class SupabaseEventoService implements IEventoService {
       endereco_estado: row.localizacao?.endereco_estado ?? null,
       endereco_cep: row.localizacao?.endereco_cep ?? null,
       nomes_cargos: row.cargos_nomes ?? [],
+      alertas: (row.evento_alerta ?? []).map(
+        (a: any): IEventoAlerta => ({
+          id: a.id,
+          evento_id: a.evento_id,
+          horas_antes: a.horas_antes,
+          enviado: a.enviado,
+          enviado_em: a.enviado_em ?? null,
+        }),
+      ),
     };
   }
+
+  private readonly SELECT_QUERY = `
+    *,
+    localizacao:localizacao_id (nome, endereco_rua, endereco_numero, endereco_bairro, endereco_cidade, endereco_estado, endereco_cep),
+    responsavel:responsavel_id (nome),
+    evento_alerta (id, evento_id, horas_antes, enviado, enviado_em)
+  `;
 
   async getAllEventos(
     startDate?: string,
     endDate?: string,
   ): Promise<IEvento[]> {
-    console.log("SupabaseEventoService: Buscando eventos.");
-
     let query = this.supabase
       .from(this.DB_TABLE)
-      .select(
-        `
-        *,
-        localizacao:localizacao_id (nome, endereco_rua, endereco_numero, endereco_bairro, endereco_cidade, endereco_estado, endereco_cep),
-        responsavel:responsavel_id (nome)
-      `,
-      )
+      .select(this.SELECT_QUERY)
       .order("data_inicio", { ascending: true });
 
-    if (startDate) {
-      query = query.gte("data_inicio", startDate);
-    }
-    if (endDate) {
-      query = query.lte("data_inicio", endDate);
-    }
+    if (startDate) query = query.gte("data_inicio", startDate);
+    if (endDate) query = query.lte("data_inicio", endDate);
 
     const { data, error } = await query;
-
-    if (error) {
-      console.error("SupabaseEventoService: Erro ao buscar eventos:", error);
-      throw new Error(`Falha ao buscar eventos: ${error.message}`);
-    }
-
-    return (data ?? []).map(this.mapToIEvento);
+    if (error) throw new Error(`Falha ao buscar eventos: ${error.message}`);
+    return (data ?? []).map(this.mapToIEvento.bind(this));
   }
 
   async getEventoById(id: string): Promise<IEvento> {
     const { data, error } = await this.supabase
       .from(this.DB_TABLE)
-      .select(
-        `
-        *,
-        localizacao:localizacao_id (nome, endereco_rua, endereco_numero, endereco_bairro, endereco_cidade, endereco_estado, endereco_cep),
-        responsavel:responsavel_id (nome)
-      `,
-      )
+      .select(this.SELECT_QUERY)
       .eq("id", id)
       .single();
 
-    if (error) {
-      console.error("SupabaseEventoService: Erro ao buscar evento:", error);
-      throw new Error(`Falha ao buscar evento: ${error.message}`);
-    }
-
+    if (error) throw new Error(`Falha ao buscar evento: ${error.message}`);
     return this.mapToIEvento(data);
   }
 
@@ -108,8 +98,6 @@ export class SupabaseEventoService implements IEventoService {
     data: CreateEventoParams,
     criadoPorId: string,
   ): Promise<IEvento> {
-    console.log("SupabaseEventoService: Criando evento:", data.titulo);
-
     const { data: created, error } = await this.supabase
       .from(this.DB_TABLE)
       .insert({
@@ -133,26 +121,20 @@ export class SupabaseEventoService implements IEventoService {
         dias_antes_referencia: data.dias_antes_referencia,
         criado_por: criadoPorId,
       })
-      .select(
-        `
-        *,
-        localizacao:localizacao_id (nome, endereco_rua, endereco_numero, endereco_bairro, endereco_cidade, endereco_estado, endereco_cep),
-        responsavel:responsavel_id (nome)
-      `,
-      )
+      .select(this.SELECT_QUERY)
       .single();
 
-    if (error) {
-      console.error("SupabaseEventoService: Erro ao criar evento:", error);
-      throw new Error(`Falha ao criar evento: ${error.message}`);
+    if (error) throw new Error(`Falha ao criar evento: ${error.message}`);
+
+    // Salva alertas se existirem
+    if (data.alertas && data.alertas.length > 0) {
+      await this.saveAlertas(created.id, data.alertas);
     }
 
     return this.mapToIEvento(created);
   }
 
   async updateEvento(data: UpdateEventoParams): Promise<IEvento> {
-    console.log("SupabaseEventoService: Atualizando evento:", data.id);
-
     const { data: updated, error } = await this.supabase
       .from(this.DB_TABLE)
       .update({
@@ -176,34 +158,48 @@ export class SupabaseEventoService implements IEventoService {
         dias_antes_referencia: data.dias_antes_referencia,
       })
       .eq("id", data.id)
-      .select(
-        `
-        *,
-        localizacao:localizacao_id (nome, endereco_rua, endereco_numero, endereco_bairro, endereco_cidade, endereco_estado, endereco_cep),
-        responsavel:responsavel_id (nome)
-      `,
-      )
+      .select(this.SELECT_QUERY)
       .single();
 
-    if (error) {
-      console.error("SupabaseEventoService: Erro ao atualizar evento:", error);
-      throw new Error(`Falha ao atualizar evento: ${error.message}`);
+    if (error) throw new Error(`Falha ao atualizar evento: ${error.message}`);
+
+    // Apaga alertas antigos e salva os novos
+    if (data.alertas !== undefined) {
+      await this.supabase
+        .from(this.ALERTA_TABLE)
+        .delete()
+        .eq("evento_id", data.id);
+
+      if (data.alertas.length > 0) {
+        await this.saveAlertas(data.id, data.alertas);
+      }
     }
 
     return this.mapToIEvento(updated);
   }
 
   async deleteEvento(id: string): Promise<void> {
-    console.log("SupabaseEventoService: Deletando evento:", id);
-
     const { error } = await this.supabase
       .from(this.DB_TABLE)
       .delete()
       .eq("id", id);
 
+    if (error) throw new Error(`Falha ao deletar evento: ${error.message}`);
+  }
+
+  private async saveAlertas(
+    eventoId: string,
+    alertas: IEventoAlerta[],
+  ): Promise<void> {
+    const rows = alertas.map((a) => ({
+      evento_id: eventoId,
+      horas_antes: a.horas_antes,
+    }));
+
+    const { error } = await this.supabase.from(this.ALERTA_TABLE).insert(rows);
+
     if (error) {
-      console.error("SupabaseEventoService: Erro ao deletar evento:", error);
-      throw new Error(`Falha ao deletar evento: ${error.message}`);
+      console.error("Erro ao salvar alertas:", error);
     }
   }
 }

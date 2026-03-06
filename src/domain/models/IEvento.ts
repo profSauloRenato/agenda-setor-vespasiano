@@ -83,4 +83,16 @@ export interface IEvento {
 
   // Flag de destaque para membros do setor onde o evento ocorre
   destaque_setor?: boolean;
+
+  // Alertas push
+  alertas?: IEventoAlerta[];
+}
+
+// Alertas de notificação push
+export interface IEventoAlerta {
+  id?: string;
+  evento_id?: string;
+  horas_antes: number;
+  enviado?: boolean;
+  enviado_em?: string | null;
 }

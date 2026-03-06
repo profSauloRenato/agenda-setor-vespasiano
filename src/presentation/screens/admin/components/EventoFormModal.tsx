@@ -23,6 +23,7 @@ import {
   EVENTO_TIPOS_LISTA,
   EventoTipo,
   IEvento,
+  IEventoAlerta,
   RECORRENCIA_TIPOS_LISTA,
   RecorrenciaTipo,
   SEMANAS_DO_MES,
@@ -58,6 +59,7 @@ const initialFormState = {
   recorrencia_intervalo: 1 as number | null,
   recorrencia_fim: null as Date | null,
   recorrencia_total: null as number | null,
+  alertas: [] as IEventoAlerta[],
 };
 
 export const EventoFormModal: React.FC<EventoFormModalProps> = ({
@@ -84,6 +86,40 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
   const [showVinculadoTimePicker, setShowVinculadoTimePicker] = useState(false);
   const [editingVinculadoIndex, setEditingVinculadoIndex] = useState<number | null>(null);
 
+  const OPCOES_ALERTA = [
+    { label: "1 hora antes", value: 1 },
+    { label: "3 horas antes", value: 3 },
+    { label: "6 horas antes", value: 6 },
+    { label: "12 horas antes", value: 12 },
+    { label: "1 dia antes", value: 24 },
+    { label: "2 dias antes", value: 48 },
+    { label: "3 dias antes", value: 72 },
+  ];
+
+  const addAlerta = () => {
+    // Adiciona com valor padrão de 24h (1 dia antes)
+    setForm((prev) => ({
+      ...prev,
+      alertas: [...prev.alertas, { horas_antes: 24 }],
+    }));
+  };
+
+  const removeAlerta = (index: number) => {
+    setForm((prev) => ({
+      ...prev,
+      alertas: prev.alertas.filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateAlerta = (index: number, horas_antes: number) => {
+    setForm((prev) => ({
+      ...prev,
+      alertas: prev.alertas.map((a, i) =>
+        i === index ? { ...a, horas_antes } : a
+      ),
+    }));
+  };
+
   const isEditing = eventoToEdit !== null;
 
   useEffect(() => {
@@ -107,6 +143,7 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
         recorrencia_intervalo: eventoToEdit.recorrencia_intervalo ?? 1,
         recorrencia_fim: eventoToEdit.recorrencia_fim ? new Date(eventoToEdit.recorrencia_fim) : null,
         recorrencia_total: eventoToEdit.recorrencia_total,
+        alertas: eventoToEdit.alertas ?? [],
       });
     } else {
       setForm(initialFormState);
@@ -165,6 +202,7 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
       recorrencia_intervalo: form.recorrente ? form.recorrencia_intervalo : null,
       recorrencia_fim: form.recorrente && form.recorrencia_fim ? form.recorrencia_fim.toISOString().split("T")[0] : null,
       recorrencia_total: form.recorrente ? form.recorrencia_total : null,
+      alertas: form.alertas,
     };
 
     let result;
@@ -602,6 +640,38 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
             </TouchableOpacity>
           </View>
         )}
+
+        {/* ALERTAS PUSH */}
+        <Text style={styles.sectionTitle}>Alertas de Notificação Push</Text>
+        <Text style={styles.infoText}>
+          Envie notificações automáticas antes do evento para os cargos visíveis.
+        </Text>
+
+        {form.alertas.map((alerta, index) => (
+          <View key={index} style={styles.vinculadoBox}>
+            <View style={styles.vinculadoHeader}>
+              <Text style={styles.vinculadoTitle}>Alerta {index + 1}</Text>
+              <TouchableOpacity onPress={() => removeAlerta(index)}>
+                <Text style={styles.removeText}>✕ Remover</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.label}>Quando enviar:</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={alerta.horas_antes}
+                onValueChange={(v) => updateAlerta(index, Number(v))}
+              >
+                {OPCOES_ALERTA.map((op) => (
+                  <Picker.Item key={op.value} label={op.label} value={op.value} />
+                ))}
+              </Picker>
+            </View>
+          </View>
+        ))}
+
+        <TouchableOpacity style={styles.addVinculadoButton} onPress={addAlerta}>
+          <Text style={styles.addVinculadoButtonText}>+ Adicionar Alerta</Text>
+        </TouchableOpacity>
 
       </ScrollView>
 

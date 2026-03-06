@@ -1,6 +1,10 @@
 // src/domain/use_cases/eventos/types.ts
 
-import { EventoTipo, RecorrenciaTipo } from "../../models/IEvento";
+import {
+  EventoTipo,
+  IEventoAlerta,
+  RecorrenciaTipo,
+} from "../../models/IEvento";
 
 export type CreateEventoParams = {
   titulo: string;
@@ -21,6 +25,7 @@ export type CreateEventoParams = {
   recorrencia_semana_do_mes: number | null;
   evento_referencia_id: string | null;
   dias_antes_referencia: number | null;
+  alertas?: IEventoAlerta[];
 };
 
 export type UpdateEventoParams = CreateEventoParams & {
