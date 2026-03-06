@@ -2572,7 +2572,7 @@ expo-constants@~55.0.7:
     "@expo/config" "~55.0.8"
     "@expo/env" "~2.1.1"
 
-expo-dev-client@^55.0.11:
+expo-dev-client@~55.0.9:
   version "55.0.11"
   resolved "https://registry.yarnpkg.com/expo-dev-client/-/expo-dev-client-55.0.11.tgz#8230906715aaeda2c14cc43df8aa4832fe12ce98"
   integrity sha512-7Be3DMgm+lmfShqGvym6kva77Cr7wWqz+Bp3cYUOwDGvC43nHTCzkDCjA2dMVgge8Y26xu4sW8KDM47Jf3/Zuw==
@@ -2597,7 +2597,7 @@ expo-dev-menu-interface@55.0.1:
   resolved "https://registry.yarnpkg.com/expo-dev-menu-interface/-/expo-dev-menu-interface-55.0.1.tgz#b1bb15b3031884e42d3dffcc7997931b749c1248"
   integrity sha512-FkNtwq1q6NmYoy28pj+ZLuHmirJgc039pQbJ167MZJIaprLcMN1yy67qA7xBHK+FNJ8AN8kGCtMTPByg5UC72A==
 
-expo-dev-menu@55.0.11:
+expo-dev-menu@55.0.11, expo-dev-menu@~55.0.9:
   version "55.0.11"
   resolved "https://registry.yarnpkg.com/expo-dev-menu/-/expo-dev-menu-55.0.11.tgz#abd1f059f4eb768e6c7234490640499bfabdc43c"
   integrity sha512-ZT4tBErubYs7Luy4+PtW/m1zBsjVdd3jYn2/FaT5xnXjaXSVkZm3Gc9ApS+a1JE0Jr4DdHL2ZJ6qUhbcSsyp5Q==
