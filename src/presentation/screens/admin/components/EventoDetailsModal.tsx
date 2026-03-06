@@ -18,6 +18,7 @@ interface EventoDetailsModalProps {
   evento: IEvento | null;
   onEdit: (evento: IEvento) => void;
   onDelete: (eventoId: string) => void;
+  showAdminActions?: boolean;
 }
 
 const formatarDataHora = (iso: string): string => {
@@ -67,6 +68,7 @@ const EventoDetailsModal: React.FC<EventoDetailsModalProps> = ({
   evento,
   onEdit,
   onDelete,
+  showAdminActions = false,
 }) => {
   if (!evento) return null;
 
@@ -161,23 +163,25 @@ const EventoDetailsModal: React.FC<EventoDetailsModalProps> = ({
           </ScrollView>
 
           {/* Botões de Ação */}
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[styles.button, styles.editButton]}
-              onPress={() => {
-                onClose();
-                onEdit(evento);
-              }}
-            >
-              <Text style={styles.textStyle}>Editar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.button, styles.deleteButton]}
-              onPress={handleDelete}
-            >
-              <Text style={styles.textStyle}>Excluir</Text>
-            </TouchableOpacity>
-          </View>
+          {showAdminActions && (
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={[styles.button, styles.editButton]}
+                onPress={() => {
+                  onClose();
+                  onEdit(evento);
+                }}
+              >
+                <Text style={styles.textStyle}>Editar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.deleteButton]}
+                onPress={handleDelete}
+              >
+                <Text style={styles.textStyle}>Excluir</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Text style={styles.closeButtonText}>Fechar</Text>

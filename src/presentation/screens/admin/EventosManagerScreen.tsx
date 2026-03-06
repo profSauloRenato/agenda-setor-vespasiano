@@ -188,6 +188,7 @@ export const EventosManagerScreen: React.FC<EventosManagerScreenProps> = ({
         evento={eventoToDetail}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        showAdminActions={true}
       />
     </View>
   );
