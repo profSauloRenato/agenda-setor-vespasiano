@@ -80,7 +80,7 @@ const EventoCard: React.FC<{
 // -------------------------------------------
 // TELA PRINCIPAL
 // -------------------------------------------
-const AgendaScreen: React.FC = () => {
+const AgendaScreen: React.FC<{ route?: any }> = ({ route }) => {
   const eventoUseCases = useEventoUseCases();
   const { state, loadEventos } = useEventosViewModel(eventoUseCases);
 
@@ -94,6 +94,19 @@ const AgendaScreen: React.FC = () => {
   useEffect(() => {
     loadEventos();
   }, []);
+
+  // Abre evento automaticamente se vier da notificação push
+  useEffect(() => {
+    const eventoId = route?.params?.eventoId;
+    if (eventoId && state.eventos.length > 0) {
+      const evento = state.eventos.find((e) => e.id === eventoId);
+      if (evento) {
+        setDataSelecionada(evento.data_inicio.split("T")[0]);
+        setEventoSelecionado(evento);
+        setIsDetailsVisible(true);
+      }
+    }
+  }, [route?.params?.eventoId, state.eventos]);
 
   // Monta os dots do calendário por data e cor
   const markedDates = React.useMemo(() => {
