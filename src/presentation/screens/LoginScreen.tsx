@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 
 // Importa o ViewModel e o Use Case
-import { useLoginUseCase } from '../../config/serviceLocator';
+import { useLoginUseCase, useNotificationService } from '../../config/serviceLocator';
 import { useLoginViewModel } from '../view_models/LoginViewModel';
 
 // --- DEFINIÇÕES DE ESTILO TEMÁTICO ---
@@ -29,18 +29,19 @@ const COLORS = {
 const LoginScreen: React.FC = () => {
   // Injeção do Use Case via Service Locator
   const loginUserUseCase = useLoginUseCase();
-  
+  const notificationService = useNotificationService();
+
   // Criação do ViewModel (com a dependência injetada)
-  const { state, setField, handleLogin } = useLoginViewModel(loginUserUseCase);
+  const { state, setField, handleLogin } = useLoginViewModel(loginUserUseCase, notificationService);
 
   return (
     <View style={styles.safeArea}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : "height"} 
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
       >
         <View style={styles.container}>
-          
+
           {/* LOGO E TÍTULO */}
           {/* Substitua esta imagem pela imagem oficial da Congregação/Setor */}
           <Image
@@ -91,7 +92,7 @@ const LoginScreen: React.FC = () => {
               <Text style={styles.buttonText}>Entrar</Text>
             )}
           </TouchableOpacity>
-          
+
           {/* Opção para Cadastro/Recuperação (Funcionalidade futura) */}
           <TouchableOpacity style={styles.linkButton} disabled={state.isLoading}>
             <Text style={styles.linkText}>Esqueceu a senha?</Text>

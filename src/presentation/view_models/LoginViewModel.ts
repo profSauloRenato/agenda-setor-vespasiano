@@ -7,6 +7,8 @@ import {
 } from "../../domain/errors/DomainError";
 import { ILoginUser } from "../../domain/use_cases/LoginUser";
 import { useAuth } from "../context/AuthContext";
+import { useNotificationService } from "../../config/serviceLocator";
+import { NotificationService } from "../../infra/services/NotificationService";
 
 // Define o estado inicial do ViewModel
 interface LoginState {
@@ -21,7 +23,7 @@ interface LoginState {
  * Hook customizado que atua como o ViewModel para a tela de Login.
  * É responsável por gerenciar a lógica de UI, o estado e interagir com o Domínio.
  */
-export const useLoginViewModel = (loginUserUseCase: ILoginUser) => {
+export const useLoginViewModel = (loginUserUseCase: ILoginUser, notificationService: NotificationService) => {
   // O estado do ViewModel é gerenciado internamente
   const [state, setState] = useState<LoginState>({
     email: "",
@@ -61,16 +63,19 @@ export const useLoginViewModel = (loginUserUseCase: ILoginUser) => {
 
       // 3. Sucesso: Se o usuário foi retornado, atualiza o estado
       if (user) {
-        signIn(user); // CHAMA O CONTEXTO: Isso aciona a navegação no AppNavigator
+        signIn(user);
+
+        // Registra token de push após login
+        try {
+          const token = await notificationService.registerForPushNotifications();
+          if (token) {
+            await notificationService.saveDeviceToken(user.id, token);
+          }
+        } catch (e) {
+          console.log("Erro ao registrar token de push:", e);
+        }
+
         setState((prev) => ({ ...prev, isLoggedIn: true, isLoading: false }));
-      } else {
-        // O Use Case só retorna null se houver uma falha de validação ou erro não tratado.
-        // Se o Use Case retorna null, tratamos como falha genérica.
-        setState((prev) => ({
-          ...prev,
-          error: "Falha desconhecida no login. Tente novamente.",
-          isLoading: false,
-        }));
       }
     } catch (err) {
       // 4. Tratamento dos Erros de Domínio
