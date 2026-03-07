@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "42116878261",
+    "project_id": "agenda-setor-vespasiano",
+    "storage_bucket": "agenda-setor-vespasiano.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:42116878261:android:34daaa24ca3c3a363193fc",
+        "android_client_info": {
+          "package_name": "com.setorvespasiano.agenda"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDTfgtu3K9nFYymaIzK7V57TBF6h9MqxN8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
