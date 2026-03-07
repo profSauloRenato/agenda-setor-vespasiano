@@ -49,21 +49,37 @@ Deno.serve(async (req) => {
       const localizacaoIds = await getLocalizacoesFilhas(supabase, evento.localizacao_id);
 
       // Busca tokens de usuários que têm cargo visível E pertencem à localização correta
+      // 1. Busca usuários das localizações corretas
+      const { data: usuarios } = await supabase
+        .from("usuario")
+        .select("id, nome, usuario_cargos(cargo_id)")
+        .in("localizacao_id", localizacaoIds);
+
+      if (!usuarios || usuarios.length === 0) continue;
+
+      // 2. Filtra por cargo visível
+      const cargosVisiveis: string[] = evento.cargos_visiveis ?? [];
+      const usuariosFiltrados = usuarios.filter((u: any) => {
+        const cargosUsuario = (u.usuario_cargos ?? []).map((c: any) => c.cargo_id);
+        return cargosUsuario.some((c: string) => cargosVisiveis.includes(c));
+      });
+
+      if (usuariosFiltrados.length === 0) continue;
+
+      const usuarioIds = usuariosFiltrados.map((u: any) => u.id);
+
+      // 3. Busca tokens desses usuários
       const { data: tokens } = await supabase
         .from("usuario_tokens")
-        .select("token, usuario:usuario_id (nome, localizacao_id, usuario_cargos(cargo_id))")
-        .in("usuario.localizacao_id", localizacaoIds);
+        .select("token, usuario_id, usuario:usuario_id(nome)")
+        .in("usuario_id", usuarioIds);
 
       if (!tokens || tokens.length === 0) continue;
 
-      // Filtra usuários que têm pelo menos um cargo visível
-      const cargosVisiveis: string[] = evento.cargos_visiveis ?? [];
-      const tokensFiltrados = tokens
-        .filter((t: any) => {
-          const cargosUsuario = (t.usuario?.usuario_cargos ?? []).map((c: any) => c.cargo_id);
-          return cargosUsuario.some((c: string) => cargosVisiveis.includes(c));
-        })
-        .map((t: any) => ({ token: t.token, nome: t.usuario?.nome ?? "Irmão(ã)" }));
+      const tokensFiltrados = (tokens ?? []).map((t: any) => ({
+        token: t.token,
+        nome: usuariosFiltrados.find((u: any) => u.id === t.usuario_id)?.nome ?? "Irmão(ã)",
+      }));
 
       if (tokensFiltrados.length === 0) continue;
 
@@ -75,11 +91,16 @@ Deno.serve(async (req) => {
         data: { evento_id: evento.id },
       }));
 
-      await fetch(EXPO_PUSH_URL, {
+      console.log("Enviando push para tokens:", tokensFiltrados.map((t: any) => t.token));
+
+      const pushResponse = await fetch(EXPO_PUSH_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(messages),
       });
+
+      const pushResult = await pushResponse.json();
+      console.log("Resposta do Expo Push:", JSON.stringify(pushResult));
 
       // Marca alerta como enviado
       await supabase
