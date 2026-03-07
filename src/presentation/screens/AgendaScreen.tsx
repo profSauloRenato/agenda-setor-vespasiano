@@ -1,6 +1,6 @@
 // src/presentation/screens/AgendaScreen.tsx
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -10,12 +10,21 @@ import {
   View,
 } from "react-native";
 import { Calendar, LocaleConfig } from "react-native-calendars";
+import { useFocusEffect } from "@react-navigation/native";
 import { IEvento } from "../../domain/models/IEvento";
-import { useEventoUseCases } from "../../config/serviceLocator";
+import { ICompromissoPessoal } from "../../domain/models/ICompromissoPessoal";
+import { useEventoUseCases, useCompromissoUseCases } from "../../config/serviceLocator";
 import { useEventosViewModel } from "../view_models/EventosViewModel";
+import { useCompromissosViewModel } from "../view_models/CompromissosViewModel";
+import { CreateCompromissoParams, UpdateCompromissoParams } from "../../domain/use_cases/compromissos/types";
 import EventoDetailsModal from "./admin/components/EventoDetailsModal";
+import { CompromissoFormModal } from "./agenda/components/CompromissoFormModal";
+import CompromissoDetailsModal from "./agenda/components/CompromissoDetailsModal";
+import { expandirRecorrencias, formatarDataISO } from "../utils/compromissoUtils";
 
-// Configuração do calendário em português
+// -------------------------------------------
+// LOCALE
+// -------------------------------------------
 LocaleConfig.locales["pt-br"] = {
   monthNames: ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"],
   monthNamesShort: ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"],
@@ -25,7 +34,9 @@ LocaleConfig.locales["pt-br"] = {
 };
 LocaleConfig.defaultLocale = "pt-br";
 
-// Cores por nível hierárquico (tipo do evento)
+// -------------------------------------------
+// CONSTANTES DE COR
+// -------------------------------------------
 const TIPO_CORES: Record<string, string> = {
   "Reunião de Congregação": "#28A745",
   "Reunião de Setor": "#17A2B8",
@@ -34,33 +45,47 @@ const TIPO_CORES: Record<string, string> = {
   "Evento Especial": "#6F42C1",
   "Culto": "#0A3D62",
 };
+const COR_COMPROMISSO = "#6C757D";
 
 const getTipoCor = (tipo: string): string => TIPO_CORES[tipo] ?? "#6C757D";
 
-const formatarHora = (iso: string): string => {
-  const d = new Date(iso);
-  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-};
+// -------------------------------------------
+// HELPERS
+// -------------------------------------------
+const formatarHora = (iso: string): string =>
+  new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
-const formatarDataISO = (date: Date): string => {
-  return date.toISOString().split("T")[0];
+const formatarDataExibicao = (dataISO: string): string => {
+  const [ano, mes, dia] = dataISO.split("-");
+  return new Date(Number(ano), Number(mes) - 1, Number(dia)).toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
 };
 
 // -------------------------------------------
-// CARD DE EVENTO NO FEED
+// TIPO UNIFICADO PARA O FEED
+// -------------------------------------------
+type FeedItem =
+  | { kind: "evento"; data: IEvento }
+  | { kind: "compromisso"; data: ICompromissoPessoal };
+
+// -------------------------------------------
+// CARD DE EVENTO
 // -------------------------------------------
 const EventoCard: React.FC<{
   evento: IEvento;
   onPress: (evento: IEvento) => void;
 }> = ({ evento, onPress }) => {
   const cor = getTipoCor(evento.tipo);
-
   return (
     <TouchableOpacity
-      style={[styles.card, { borderLeftColor: cor, borderLeftWidth: 5 }]}
+      style={[styles.card, { borderLeftColor: cor }]}
       onPress={() => onPress(evento)}
     >
-      <View style={styles.cardHora}>
+      <View style={styles.cardHoraCol}>
         <Text style={[styles.cardHoraText, { color: cor }]}>
           {formatarHora(evento.data_inicio)}
         </Text>
@@ -78,90 +103,189 @@ const EventoCard: React.FC<{
 };
 
 // -------------------------------------------
+// CARD DE COMPROMISSO PESSOAL
+// -------------------------------------------
+const CompromissoCard: React.FC<{
+  compromisso: ICompromissoPessoal;
+  onPress: (compromisso: ICompromissoPessoal) => void;
+}> = ({ compromisso, onPress }) => (
+  <TouchableOpacity
+    style={[styles.card, { borderLeftColor: COR_COMPROMISSO }]}
+    onPress={() => onPress(compromisso)}
+  >
+    <View style={styles.cardHoraCol}>
+      <Text style={[styles.cardHoraText, { color: COR_COMPROMISSO }]}>
+        {formatarHora(compromisso.data_inicio)}
+      </Text>
+      {compromisso.recorrente && <Text style={styles.cardRecorrente}>🔁</Text>}
+    </View>
+    <View style={styles.cardInfo}>
+      <View style={styles.cardTituloRow}>
+        <Text style={styles.cardTitulo} numberOfLines={1}>
+          {compromisso.titulo}
+        </Text>
+        <Text style={styles.cardLockIcon}>🔒</Text>
+      </View>
+      <Text style={[styles.cardTipo, { color: COR_COMPROMISSO }]}>
+        Compromisso pessoal
+      </Text>
+      {compromisso.descricao ? (
+        <Text style={styles.cardLocal} numberOfLines={1}>
+          {compromisso.descricao}
+        </Text>
+      ) : null}
+    </View>
+  </TouchableOpacity>
+);
+
+// -------------------------------------------
 // TELA PRINCIPAL
 // -------------------------------------------
 const AgendaScreen: React.FC<{ route?: any }> = ({ route }) => {
   const eventoUseCases = useEventoUseCases();
-  const { state, loadEventos } = useEventosViewModel(eventoUseCases);
+  const compromissoUseCases = useCompromissoUseCases();
+
+  const { state: eventosState, loadEventos } = useEventosViewModel(eventoUseCases);
+  const {
+    state: compromissosState,
+    refreshCompromissos,
+    createCompromisso,
+    updateCompromisso,
+    deleteCompromisso,
+  } = useCompromissosViewModel(compromissoUseCases);
 
   const [dataSelecionada, setDataSelecionada] = useState<string>(
     formatarDataISO(new Date())
   );
-  const [eventoSelecionado, setEventoSelecionado] = useState<IEvento | null>(null);
-  const [isDetailsVisible, setIsDetailsVisible] = useState(false);
 
-  // Carrega eventos ao montar
-  useEffect(() => {
-    loadEventos();
-  }, []);
+  // Modais de evento
+  const [eventoSelecionado, setEventoSelecionado] = useState<IEvento | null>(null);
+  const [isEventoDetailsVisible, setIsEventoDetailsVisible] = useState(false);
+
+  // Modais de compromisso
+  const [compromissoSelecionado, setCompromissoSelecionado] = useState<ICompromissoPessoal | null>(null);
+  const [isCompromissoDetailsVisible, setIsCompromissoDetailsVisible] = useState(false);
+  const [isCompromissoFormVisible, setIsCompromissoFormVisible] = useState(false);
+  const [compromissoToEdit, setCompromissoToEdit] = useState<ICompromissoPessoal | null>(null);
+
+  // Carrega ao focar a tela
+  useFocusEffect(
+    useCallback(() => {
+      loadEventos();
+      refreshCompromissos();
+    }, [])
+  );
 
   // Abre evento automaticamente se vier da notificação push
   useEffect(() => {
     const eventoId = route?.params?.eventoId;
-    if (eventoId && state.eventos.length > 0) {
-      const evento = state.eventos.find((e) => e.id === eventoId);
+    if (eventoId && eventosState.eventos.length > 0) {
+      const evento = eventosState.eventos.find((e) => e.id === eventoId);
       if (evento) {
         setDataSelecionada(evento.data_inicio.split("T")[0]);
         setEventoSelecionado(evento);
-        setIsDetailsVisible(true);
+        setIsEventoDetailsVisible(true);
       }
     }
-  }, [route?.params?.eventoId, state.eventos]);
+  }, [route?.params?.eventoId, eventosState.eventos]);
 
-  // Monta os dots do calendário por data e cor
+  // -------------------------------------------
+  // MARKED DATES — eventos + compromissos
+  // -------------------------------------------
+  const [mesVisivel, setMesVisivel] = useState<string>(
+    formatarDataISO(new Date()).substring(0, 7)
+  );
+
   const markedDates = React.useMemo(() => {
     const marks: Record<string, any> = {};
 
-    state.eventos.forEach((evento) => {
-      const dataKey = evento.data_inicio.split("T")[0];
+    // Dots de eventos
+    eventosState.eventos.forEach((evento) => {
+      const key = evento.data_inicio.split("T")[0];
       const cor = getTipoCor(evento.tipo);
-
-      if (!marks[dataKey]) {
-        marks[dataKey] = { dots: [] };
-      }
-      // Evita dots duplicados da mesma cor
-      const jaTemCor = marks[dataKey].dots.some((d: any) => d.color === cor);
-      if (!jaTemCor) {
-        marks[dataKey].dots.push({ color: cor });
+      if (!marks[key]) marks[key] = { dots: [] };
+      if (!marks[key].dots.some((d: any) => d.color === cor)) {
+        marks[key].dots.push({ color: cor });
       }
     });
 
-    // Destaca o dia selecionado
-    if (marks[dataSelecionada]) {
-      marks[dataSelecionada] = {
-        ...marks[dataSelecionada],
-        selected: true,
-        selectedColor: "#0A3D62",
-      };
-    } else {
-      marks[dataSelecionada] = { selected: true, selectedColor: "#0A3D62" };
+    // Dots de compromissos — expande recorrências para todos os dias do mês visível
+    const [ano, mes] = mesVisivel.split("-").map(Number);
+    const diasNoMes = new Date(ano, mes, 0).getDate();
+
+    for (let dia = 1; dia <= diasNoMes; dia++) {
+      const dataAlvo = `${mesVisivel}-${String(dia).padStart(2, "0")}`;
+      compromissosState.compromissos.forEach((c) => {
+        const ocorrencias = expandirRecorrencias(c, dataAlvo);
+        if (ocorrencias.length > 0) {
+          if (!marks[dataAlvo]) marks[dataAlvo] = { dots: [] };
+          if (!marks[dataAlvo].dots.some((d: any) => d.color === COR_COMPROMISSO)) {
+            marks[dataAlvo].dots.push({ color: COR_COMPROMISSO });
+          }
+        }
+      });
     }
 
+    // Dia selecionado
+    marks[dataSelecionada] = {
+      ...(marks[dataSelecionada] ?? {}),
+      selected: true,
+      selectedColor: "#0A3D62",
+    };
+
     return marks;
-  }, [state.eventos, dataSelecionada]);
+  }, [eventosState.eventos, compromissosState.compromissos, dataSelecionada, mesVisivel]);
 
-  // Filtra eventos do dia selecionado
-  const eventosDoDia = React.useMemo(() => {
-    return state.eventos
+  // -------------------------------------------
+  // FEED UNIFICADO DO DIA — ordenado por hora
+  // -------------------------------------------
+  const feedDoDia = React.useMemo((): FeedItem[] => {
+    const eventos: FeedItem[] = eventosState.eventos
       .filter((e) => e.data_inicio.split("T")[0] === dataSelecionada)
-      .sort((a, b) => a.data_inicio.localeCompare(b.data_inicio));
-  }, [state.eventos, dataSelecionada]);
+      .map((e) => ({ kind: "evento" as const, data: e }));
 
-  const handlePressEvento = (evento: IEvento) => {
-    setEventoSelecionado(evento);
-    setIsDetailsVisible(true);
+    const compromissos: FeedItem[] = compromissosState.compromissos
+      .flatMap((c) => expandirRecorrencias(c, dataSelecionada))
+      .map((c) => ({ kind: "compromisso" as const, data: c }));
+
+    return [...eventos, ...compromissos].sort((a, b) =>
+      a.data.data_inicio.localeCompare(b.data.data_inicio)
+    );
+  }, [eventosState.eventos, compromissosState.compromissos, dataSelecionada]);
+
+  // -------------------------------------------
+  // HANDLERS DE COMPROMISSO
+  // -------------------------------------------
+  const handleSaveCompromisso = async (
+    params: CreateCompromissoParams | UpdateCompromissoParams,
+  ) => {
+    let ok: ICompromissoPessoal | undefined;
+    if ("id" in params) {
+      ok = await updateCompromisso(params as UpdateCompromissoParams);
+    } else {
+      ok = await createCompromisso(params as CreateCompromissoParams);
+    }
+    if (ok) {
+      setIsCompromissoFormVisible(false);
+      setCompromissoToEdit(null);
+    }
   };
 
-  const formatarDataExibicao = (dataISO: string): string => {
-    const [ano, mes, dia] = dataISO.split("-");
-    return new Date(Number(ano), Number(mes) - 1, Number(dia)).toLocaleDateString("pt-BR", {
-      weekday: "long",
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
+  const handleEditCompromisso = (compromisso: ICompromissoPessoal) => {
+    setIsCompromissoDetailsVisible(false);
+    setCompromissoToEdit(compromisso);
+    setIsCompromissoFormVisible(true);
   };
 
+  const handleDeleteCompromisso = async (id: string) => {
+    await deleteCompromisso(id);
+  };
+
+  const isLoading = eventosState.isLoading || compromissosState.isLoading;
+
+  // -------------------------------------------
+  // RENDER
+  // -------------------------------------------
   return (
     <View style={styles.container}>
 
@@ -170,6 +294,7 @@ const AgendaScreen: React.FC<{ route?: any }> = ({ route }) => {
         markingType="multi-dot"
         markedDates={markedDates}
         onDayPress={(day) => setDataSelecionada(day.dateString)}
+        onMonthChange={(month) => setMesVisivel(month.dateString.substring(0, 7))}
         theme={{
           todayTextColor: "#17A2B8",
           selectedDayBackgroundColor: "#0A3D62",
@@ -180,7 +305,7 @@ const AgendaScreen: React.FC<{ route?: any }> = ({ route }) => {
         }}
       />
 
-      {/* LEGENDA DE CORES */}
+      {/* LEGENDA */}
       <View style={styles.legenda}>
         {Object.entries(TIPO_CORES).map(([tipo, cor]) => (
           <View key={tipo} style={styles.legendaItem}>
@@ -188,41 +313,79 @@ const AgendaScreen: React.FC<{ route?: any }> = ({ route }) => {
             <Text style={styles.legendaText}>{tipo.replace("Reunião de ", "")}</Text>
           </View>
         ))}
+        <View style={styles.legendaItem}>
+          <Text style={styles.legendaLockIcon}>🔒</Text>
+          <Text style={styles.legendaText}>Pessoal</Text>
+        </View>
       </View>
 
-      {/* DATA SELECIONADA */}
-      <Text style={styles.dataSelecionadaText}>
-        {formatarDataExibicao(dataSelecionada)}
-      </Text>
+      {/* BARRA: data + botão novo compromisso */}
+      <View style={styles.barraDia}>
+        <Text style={styles.dataSelecionadaText} numberOfLines={1}>
+          {formatarDataExibicao(dataSelecionada)}
+        </Text>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => {
+            setCompromissoToEdit(null);
+            setIsCompromissoFormVisible(true);
+          }}
+        >
+          <Text style={styles.addButtonText}>+ Compromisso</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* LOADING */}
-      {state.isLoading && (
+      {isLoading && (
         <ActivityIndicator size="large" color="#17A2B8" style={{ marginTop: 20 }} />
       )}
 
-      {/* LISTA DE EVENTOS DO DIA */}
-      {!state.isLoading && eventosDoDia.length === 0 && (
+      {/* FEED VAZIO */}
+      {!isLoading && feedDoDia.length === 0 && (
         <View style={styles.semEventos}>
           <Text style={styles.semEventosText}>Nenhum evento neste dia.</Text>
+          <Text style={styles.semEventosHint}>
+            Toque em "+ Compromisso" para adicionar um compromisso pessoal.
+          </Text>
         </View>
       )}
 
-      {!state.isLoading && eventosDoDia.length > 0 && (
+      {/* FEED UNIFICADO */}
+      {!isLoading && feedDoDia.length > 0 && (
         <FlatList
-          data={eventosDoDia}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <EventoCard evento={item} onPress={handlePressEvento} />
-          )}
+          data={feedDoDia}
+          keyExtractor={(item) => `${item.kind}-${item.data.id}`}
+          renderItem={({ item }) => {
+            if (item.kind === "evento") {
+              return (
+                <EventoCard
+                  evento={item.data as IEvento}
+                  onPress={(e) => {
+                    setEventoSelecionado(e);
+                    setIsEventoDetailsVisible(true);
+                  }}
+                />
+              );
+            }
+            return (
+              <CompromissoCard
+                compromisso={item.data as ICompromissoPessoal}
+                onPress={(c) => {
+                  setCompromissoSelecionado(c);
+                  setIsCompromissoDetailsVisible(true);
+                }}
+              />
+            );
+          }}
           contentContainerStyle={{ paddingBottom: 20 }}
         />
       )}
 
-      {/* MODAL DE DETALHES */}
+      {/* MODAL: detalhes de evento */}
       <EventoDetailsModal
-        isVisible={isDetailsVisible}
+        isVisible={isEventoDetailsVisible}
         onClose={() => {
-          setIsDetailsVisible(false);
+          setIsEventoDetailsVisible(false);
           setEventoSelecionado(null);
         }}
         evento={eventoSelecionado}
@@ -230,10 +393,37 @@ const AgendaScreen: React.FC<{ route?: any }> = ({ route }) => {
         onDelete={() => { }}
       />
 
+      {/* MODAL: detalhes de compromisso */}
+      <CompromissoDetailsModal
+        isVisible={isCompromissoDetailsVisible}
+        onClose={() => {
+          setIsCompromissoDetailsVisible(false);
+          setCompromissoSelecionado(null);
+        }}
+        compromisso={compromissoSelecionado}
+        onEdit={handleEditCompromisso}
+        onDelete={handleDeleteCompromisso}
+      />
+
+      {/* MODAL: formulário de compromisso */}
+      <CompromissoFormModal
+        isVisible={isCompromissoFormVisible}
+        onClose={() => {
+          setIsCompromissoFormVisible(false);
+          setCompromissoToEdit(null);
+        }}
+        onSave={handleSaveCompromisso}
+        compromissoToEdit={compromissoToEdit}
+        isSubmitting={compromissosState.isSubmitting}
+      />
+
     </View>
   );
 };
 
+// -------------------------------------------
+// ESTILOS
+// -------------------------------------------
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -260,17 +450,39 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginRight: 4,
   },
+  legendaLockIcon: {
+    fontSize: 10,
+    marginRight: 4,
+  },
   legendaText: {
     fontSize: 11,
     color: "#555",
   },
+  barraDia: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+  },
   dataSelecionadaText: {
+    flex: 1,
     fontSize: 14,
     fontWeight: "bold",
     color: "#0A3D62",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
     textTransform: "capitalize",
+    marginRight: 10,
+  },
+  addButton: {
+    backgroundColor: "#4A4A6A",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+  },
+  addButtonText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "700",
   },
   card: {
     flexDirection: "row",
@@ -279,9 +491,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderRadius: 8,
     padding: 12,
+    borderLeftWidth: 5,
     elevation: 1,
   },
-  cardHora: {
+  cardHoraCol: {
     width: 55,
     alignItems: "center",
     justifyContent: "center",
@@ -298,10 +511,19 @@ const styles = StyleSheet.create({
   cardInfo: {
     flex: 1,
   },
+  cardTituloRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   cardTitulo: {
+    flex: 1,
     fontSize: 15,
     fontWeight: "700",
     color: "#222",
+  },
+  cardLockIcon: {
+    fontSize: 13,
   },
   cardTipo: {
     fontSize: 12,
@@ -318,10 +540,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginTop: 30,
+    paddingHorizontal: 30,
   },
   semEventosText: {
     fontSize: 15,
     color: "#6C757D",
+    textAlign: "center",
+  },
+  semEventosHint: {
+    fontSize: 13,
+    color: "#AAA",
+    marginTop: 8,
+    textAlign: "center",
   },
 });
 

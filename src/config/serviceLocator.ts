@@ -14,6 +14,15 @@ import { SupabaseVersiculoService } from "../infra/services/SupabaseVersiculoSer
 import { SupabaseMensagemAdminService } from "../infra/services/SupabaseMensagemAdminService";
 import { NotificationService } from "../infra/services/NotificationService";
 
+// Compromissos Pessoais
+import { SupabaseCompromissoPessoalService } from '../infra/services/SupabaseCompromissoPessoalService';
+import { ICompromissoPessoalService } from '../domain/services/ICompromissoPessoalService';
+import { GetAllCompromissos, IGetAllCompromissos } from '../domain/use_cases/compromissos/GetAllCompromissos';
+import { CreateCompromisso, ICreateCompromisso } from '../domain/use_cases/compromissos/CreateCompromisso';
+import { UpdateCompromisso, IUpdateCompromisso } from '../domain/use_cases/compromissos/UpdateCompromisso';
+import { DeleteCompromisso, IDeleteCompromisso } from '../domain/use_cases/compromissos/DeleteCompromisso';
+import { CompromissoUseCases } from '../presentation/view_models/CompromissosViewModel';
+
 // --- Dependências da camada de Domain (Use Cases) ---
 // Auth
 import { ILoginUser, LoginUser } from "../domain/use_cases/LoginUser";
@@ -125,6 +134,13 @@ interface IServiceLocator {
   deleteEvento: IDeleteEvento;
   eventoService: IEventoService;
 
+  // Compromissos Pessoais
+  compromissoPessoalService: ICompromissoPessoalService;
+  getAllCompromissos: IGetAllCompromissos;
+  createCompromisso: ICreateCompromisso;
+  updateCompromisso: IUpdateCompromisso;
+  deleteCompromisso: IDeleteCompromisso;
+
   usuariosViewModel: UsuariosViewModel; // Serviços de Data (Geralmente não expostos, mas úteis para testes)
 
   authService: IAuthService;
@@ -190,6 +206,16 @@ const createEvento: ICreateEvento = new CreateEvento(eventoService);
 const updateEvento: IUpdateEvento = new UpdateEvento(eventoService);
 const deleteEvento: IDeleteEvento = new DeleteEvento(eventoService);
 
+// Serviço de Compromissos Pessoais
+const compromissoPessoalService: ICompromissoPessoalService =
+  new SupabaseCompromissoPessoalService(supabaseClient);
+
+// Use Cases de Compromissos Pessoais
+const getAllCompromissos: IGetAllCompromissos = new GetAllCompromissos(compromissoPessoalService);
+const createCompromisso: ICreateCompromisso = new CreateCompromisso(compromissoPessoalService);
+const updateCompromisso: IUpdateCompromisso = new UpdateCompromisso(compromissoPessoalService);
+const deleteCompromisso: IDeleteCompromisso = new DeleteCompromisso(compromissoPessoalService);
+
 // -----------------------------------------------------
 // 3. Inicialização dos View Models (Camada de Presentation)
 // -----------------------------------------------------
@@ -231,6 +257,13 @@ export const serviceLocator: IServiceLocator = {
   updateEvento,
   deleteEvento,
   eventoService,
+
+  // Compromissos Pessoais
+  compromissoPessoalService,
+  getAllCompromissos,
+  createCompromisso,
+  updateCompromisso,
+  deleteCompromisso,
 
   usuariosViewModel, // Serviços de Data
 
@@ -290,6 +323,14 @@ export const useEventoUseCases = () => ({
   createEvento: serviceLocator.createEvento,
   updateEvento: serviceLocator.updateEvento,
   deleteEvento: serviceLocator.deleteEvento,
+});
+
+// Hook para Use Cases de Compromissos Pessoais
+export const useCompromissoUseCases = (): CompromissoUseCases => ({
+  getAll: serviceLocator.getAllCompromissos,
+  create: serviceLocator.createCompromisso,
+  update: serviceLocator.updateCompromisso,
+  delete: serviceLocator.deleteCompromisso,
 });
 
 // HOOK DE CONVENIÊNCIA para injeção completa na tela UsuariosManagerScreen

@@ -11,13 +11,26 @@ import {
   View,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
-import { useEventoUseCases, useVersiculoService } from "../../config/serviceLocator";
+import {
+  useEventoUseCases,
+  useVersiculoService,
+  useMensagemAdminService,
+  useCompromissoUseCases,
+} from "../../config/serviceLocator";
 import { useEventosViewModel } from "../view_models/EventosViewModel";
+import { useCompromissosViewModel } from "../view_models/CompromissosViewModel";
 import { IEvento } from "../../domain/models/IEvento";
+import { ICompromissoPessoal } from "../../domain/models/ICompromissoPessoal";
 import { IVersiculo } from "../../domain/models/IVersiculo";
-import EventoDetailsModal from "./admin/components/EventoDetailsModal";
-import { useMensagemAdminService } from "../../config/serviceLocator";
 import { IMensagemAdmin } from "../../domain/models/IMensagemAdmin";
+import EventoDetailsModal from "./admin/components/EventoDetailsModal";
+import CompromissoDetailsModal from "./agenda/components/CompromissoDetailsModal";
+import { CompromissoFormModal } from "./agenda/components/CompromissoFormModal";
+import {
+  CreateCompromissoParams,
+  UpdateCompromissoParams,
+} from "../../domain/use_cases/compromissos/types";
+import { expandirRecorrencias, formatarDataISO } from "../utils/compromissoUtils";
 
 type RootStackParamList = {
   CargosManager: undefined;
@@ -26,10 +39,12 @@ type RootStackParamList = {
   LocalizacoesManager: { locationType: string };
   EventosManager: undefined;
   Agenda: undefined;
-  AdminPanel: undefined
+  AdminPanel: undefined;
 };
 
-// Cores por tipo de evento
+// -------------------------------------------
+// CONSTANTES DE COR
+// -------------------------------------------
 const TIPO_CORES: Record<string, string> = {
   "Reunião de Congregação": "#28A745",
   "Reunião de Setor": "#17A2B8",
@@ -38,18 +53,31 @@ const TIPO_CORES: Record<string, string> = {
   "Evento Especial": "#6F42C1",
   "Culto": "#0A3D62",
 };
+const COR_COMPROMISSO = "#6C757D";
 
 const getTipoCor = (tipo: string): string => TIPO_CORES[tipo] ?? "#6C757D";
 
-const formatarHora = (iso: string): string => {
-  const d = new Date(iso);
-  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-};
+// -------------------------------------------
+// HELPERS
+// -------------------------------------------
+const formatarHora = (iso: string): string =>
+  new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
 const formatarDataCurta = (iso: string): string => {
   const d = new Date(iso);
-  return d.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" });
+  return d.toLocaleDateString("pt-BR", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+  });
 };
+
+// -------------------------------------------
+// TIPO UNIFICADO PARA O FEED
+// -------------------------------------------
+type FeedItem =
+  | { kind: "evento"; data: IEvento }
+  | { kind: "compromisso"; data: ICompromissoPessoal };
 
 // -------------------------------------------
 // CARD DE EVENTO
@@ -76,13 +104,54 @@ const EventoCard: React.FC<{
         <Text style={styles.cardTitulo} numberOfLines={1}>{evento.titulo}</Text>
         <Text style={[styles.cardTipo, { color: cor }]}>{evento.tipo}</Text>
         {evento.nome_localizacao && (
-          <Text style={styles.cardLocal} numberOfLines={1}>📍 {evento.nome_localizacao}</Text>
+          <Text style={styles.cardLocal} numberOfLines={1}>
+            📍 {evento.nome_localizacao}
+          </Text>
         )}
       </View>
       {evento.recorrente && <Text style={styles.cardRecorrente}>🔁</Text>}
     </TouchableOpacity>
   );
 };
+
+// -------------------------------------------
+// CARD DE COMPROMISSO PESSOAL
+// -------------------------------------------
+const CompromissoCard: React.FC<{
+  compromisso: ICompromissoPessoal;
+  onPress: (compromisso: ICompromissoPessoal) => void;
+}> = ({ compromisso, onPress }) => (
+  <TouchableOpacity
+    style={[styles.card, { borderLeftColor: COR_COMPROMISSO }]}
+    onPress={() => onPress(compromisso)}
+  >
+    <View style={styles.cardDataCol}>
+      <Text style={[styles.cardData, { color: COR_COMPROMISSO }]}>
+        {formatarDataCurta(compromisso.data_inicio)}
+      </Text>
+      <Text style={[styles.cardHora, { color: COR_COMPROMISSO }]}>
+        {formatarHora(compromisso.data_inicio)}
+      </Text>
+    </View>
+    <View style={styles.cardInfo}>
+      <View style={styles.cardTituloRow}>
+        <Text style={styles.cardTitulo} numberOfLines={1}>
+          {compromisso.titulo}
+        </Text>
+        <Text style={styles.cardLockIcon}>🔒</Text>
+      </View>
+      <Text style={[styles.cardTipo, { color: COR_COMPROMISSO }]}>
+        Compromisso pessoal
+      </Text>
+      {compromisso.descricao ? (
+        <Text style={styles.cardLocal} numberOfLines={1}>
+          {compromisso.descricao}
+        </Text>
+      ) : null}
+    </View>
+    {compromisso.recorrente && <Text style={styles.cardRecorrente}>🔁</Text>}
+  </TouchableOpacity>
+);
 
 // -------------------------------------------
 // CARROSSEL DE VERSÍCULO E MENSAGENS
@@ -102,7 +171,6 @@ const CarrosselCards: React.FC<{
     return lista;
   }, [versiculo, mensagens]);
 
-  // Rotação automática — pausa quando expandido
   useEffect(() => {
     if (cards.length <= 1 || expandido) return;
     const timer = setInterval(() => {
@@ -111,7 +179,6 @@ const CarrosselCards: React.FC<{
     return () => clearInterval(timer);
   }, [cards.length, expandido]);
 
-  // Reset ao trocar de card
   useEffect(() => {
     setExpandido(false);
     setTextoTruncado(false);
@@ -129,39 +196,33 @@ const CarrosselCards: React.FC<{
 
   return (
     <View style={[stylesCarrossel.container, { backgroundColor: bgColor }]}>
-
       <Text style={[stylesCarrossel.label, { color: labelColor }]}>
         {isMensagem ? `📢 ${card.dados.titulo}` : "📖 Versículo do Dia"}
       </Text>
-
       <Text
         style={stylesCarrossel.texto}
         numberOfLines={expandido ? undefined : LIMITE_LINHAS}
         onTextLayout={(e) => {
-          if (!expandido) {
-            setTextoTruncado(e.nativeEvent.lines.length >= LIMITE_LINHAS);
-          }
+          if (!expandido) setTextoTruncado(e.nativeEvent.lines.length >= LIMITE_LINHAS);
         }}
       >
         {texto}
       </Text>
-
       {!isMensagem && (
         <Text style={[stylesCarrossel.referencia, { color: labelColor }]}>
           — {card.dados.referencia}
         </Text>
       )}
-
-      {/* RODAPÉ: navegação + ler mais na mesma linha */}
       <View style={stylesCarrossel.rodape}>
         {cards.length > 1 && !expandido ? (
           <View style={stylesCarrossel.navegacao}>
             <TouchableOpacity
-              onPress={() => setIndiceAtual((prev) => (prev - 1 + cards.length) % cards.length)}
+              onPress={() =>
+                setIndiceAtual((prev) => (prev - 1 + cards.length) % cards.length)
+              }
             >
               <Text style={stylesCarrossel.seta}>‹</Text>
             </TouchableOpacity>
-
             <View style={stylesCarrossel.dots}>
               {cards.map((c, i) => (
                 <View
@@ -170,38 +231,44 @@ const CarrosselCards: React.FC<{
                     stylesCarrossel.dot,
                     i === indiceAtual && stylesCarrossel.dotAtivo,
                     c.tipo === "mensagem" && {
-                      backgroundColor: i === indiceAtual ? "#FF6B6B" : "rgba(255,107,107,0.4)",
+                      backgroundColor:
+                        i === indiceAtual ? "#FF6B6B" : "rgba(255,107,107,0.4)",
                     },
                   ]}
                 />
               ))}
             </View>
-
-            {/* Ler mais no lugar da seta direita quando texto truncado */}
             {textoTruncado ? (
               <TouchableOpacity onPress={() => setExpandido(true)}>
-                <Text style={[stylesCarrossel.lerMais, { color: labelColor }]}>Ler mais ▼</Text>
+                <Text style={[stylesCarrossel.lerMais, { color: labelColor }]}>
+                  Ler mais ▼
+                </Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
-                onPress={() => setIndiceAtual((prev) => (prev + 1) % cards.length)}
+                onPress={() =>
+                  setIndiceAtual((prev) => (prev + 1) % cards.length)
+                }
               >
                 <Text style={stylesCarrossel.seta}>›</Text>
               </TouchableOpacity>
             )}
           </View>
         ) : (
-          // Quando expandido, mostra apenas o botão recolher
           textoTruncado && (
             <TouchableOpacity onPress={() => setExpandido(false)}>
-              <Text style={[stylesCarrossel.lerMais, { color: labelColor, textAlign: "right" }]}>
+              <Text
+                style={[
+                  stylesCarrossel.lerMais,
+                  { color: labelColor, textAlign: "right" },
+                ]}
+              >
                 Recolher ▲
               </Text>
             </TouchableOpacity>
           )
         )}
       </View>
-
     </View>
   );
 };
@@ -213,9 +280,6 @@ const stylesCarrossel = StyleSheet.create({
     padding: 15,
     minHeight: 164,
     justifyContent: "space-between",
-  },
-  containerExpandido: {
-    minHeight: undefined,
   },
   label: {
     fontSize: 12,
@@ -276,47 +340,118 @@ const stylesCarrossel = StyleSheet.create({
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { user, signOut } = useAuth();
-  const eventoUseCases = useEventoUseCases();
-  const versiculoService = useVersiculoService();
-  const { state, loadEventos, refreshEventos } = useEventosViewModel(eventoUseCases);
 
-  const [eventoSelecionado, setEventoSelecionado] = useState<IEvento | null>(null);
-  const [isDetailsVisible, setIsDetailsVisible] = useState(false);
+  const eventoUseCases = useEventoUseCases();
+  const compromissoUseCases = useCompromissoUseCases();
+  const versiculoService = useVersiculoService();
+  const mensagemService = useMensagemAdminService();
+
+  const { state: eventosState, refreshEventos } = useEventosViewModel(eventoUseCases);
+  const {
+    state: compromissosState,
+    refreshCompromissos,
+    updateCompromisso,
+    deleteCompromisso,
+  } = useCompromissosViewModel(compromissoUseCases);
+
   const [versiculo, setVersiculo] = useState<IVersiculo | null>(null);
   const [mensagens, setMensagens] = useState<IMensagemAdmin[]>([]);
-  const mensagemService = useMensagemAdminService();
+
+  // Modais de evento
+  const [eventoSelecionado, setEventoSelecionado] = useState<IEvento | null>(null);
+  const [isEventoDetailsVisible, setIsEventoDetailsVisible] = useState(false);
+
+  // Modais de compromisso
+  const [compromissoSelecionado, setCompromissoSelecionado] =
+    useState<ICompromissoPessoal | null>(null);
+  const [isCompromissoDetailsVisible, setIsCompromissoDetailsVisible] = useState(false);
+  const [isCompromissoFormVisible, setIsCompromissoFormVisible] = useState(false);
+  const [compromissoToEdit, setCompromissoToEdit] =
+    useState<ICompromissoPessoal | null>(null);
 
   const isAdmin = user?.is_admin === true;
 
   useFocusEffect(
     React.useCallback(() => {
       refreshEventos();
+      refreshCompromissos();
       versiculoService.getVersiculoHoje().then(setVersiculo).catch(() => { });
       const cargoIds = user?.cargos?.map((c) => c.id) ?? [];
       mensagemService.getMensagensAtivas(cargoIds).then(setMensagens).catch(() => { });
     }, [])
   );
 
-  // Filtra eventos dos próximos 7 dias
-  const proximosEventos = React.useMemo(() => {
+  // -------------------------------------------
+  // FEED UNIFICADO — próximos 7 dias
+  // -------------------------------------------
+  const feedProximos = React.useMemo((): FeedItem[] => {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     const limite = new Date(hoje);
     limite.setDate(limite.getDate() + 7);
 
-    return state.eventos
+    const eventos: FeedItem[] = eventosState.eventos
       .filter((e) => {
-        const data = new Date(e.data_inicio);
-        return data >= hoje && data <= limite;
+        const d = new Date(e.data_inicio);
+        return d >= hoje && d <= limite;
       })
-      .sort((a, b) => a.data_inicio.localeCompare(b.data_inicio));
-  }, [state.eventos]);
+      .map((e) => ({ kind: "evento" as const, data: e }));
 
-  const handlePressEvento = (evento: IEvento) => {
-    setEventoSelecionado(evento);
-    setIsDetailsVisible(true);
+    const compromissos: FeedItem[] = compromissosState.compromissos.flatMap((c) => {
+      if (!c.recorrente || !c.recorrencia_tipo) {
+        const d = new Date(c.data_inicio);
+        return d >= hoje && d <= limite
+          ? [{ kind: "compromisso" as const, data: c }]
+          : [];
+      }
+      const ocorrencias: FeedItem[] = [];
+      const cursor = new Date(hoje);
+      while (cursor <= limite) {
+        const dataAlvo = formatarDataISO(cursor);
+        const expandidos = expandirRecorrencias(c, dataAlvo);
+        expandidos.forEach((exp) =>
+          ocorrencias.push({ kind: "compromisso" as const, data: exp })
+        );
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      return ocorrencias;
+    });
+
+    return [...eventos, ...compromissos].sort((a, b) =>
+      a.data.data_inicio.localeCompare(b.data.data_inicio)
+    );
+  }, [eventosState.eventos, compromissosState.compromissos]);
+
+  // -------------------------------------------
+  // HANDLERS DE COMPROMISSO
+  // -------------------------------------------
+  const handleSaveCompromisso = async (
+    params: CreateCompromissoParams | UpdateCompromissoParams,
+  ) => {
+    if ("id" in params) {
+      const ok = await updateCompromisso(params as UpdateCompromissoParams);
+      if (ok) {
+        setIsCompromissoFormVisible(false);
+        setCompromissoToEdit(null);
+      }
+    }
   };
 
+  const handleEditCompromisso = (compromisso: ICompromissoPessoal) => {
+    setIsCompromissoDetailsVisible(false);
+    setCompromissoToEdit(compromisso);
+    setIsCompromissoFormVisible(true);
+  };
+
+  const handleDeleteCompromisso = async (id: string) => {
+    await deleteCompromisso(id);
+  };
+
+  const isLoading = eventosState.isLoading || compromissosState.isLoading;
+
+  // -------------------------------------------
+  // RENDER
+  // -------------------------------------------
   return (
     <View style={styles.container}>
 
@@ -343,39 +478,62 @@ const HomeScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* CARROSSEL - FIXO */}
+      {/* CARROSSEL */}
       {(versiculo || mensagens.length > 0) && (
         <CarrosselCards versiculo={versiculo} mensagens={mensagens} />
       )}
 
-      {/* TÍTULO - FIXO */}
+      {/* TÍTULO */}
       <Text style={styles.sectionTitle}>📅 Próximos 7 dias</Text>
 
-      {/* FEED - ROLÁVEL */}
-      {state.isLoading && (
+      {/* LOADING */}
+      {isLoading && (
         <ActivityIndicator size="large" color="#17A2B8" style={{ marginTop: 20 }} />
       )}
 
-      {!state.isLoading && proximosEventos.length === 0 && (
+      {/* FEED VAZIO */}
+      {!isLoading && feedProximos.length === 0 && (
         <View style={styles.semEventos}>
-          <Text style={styles.semEventosText}>Nenhum evento nos próximos 7 dias.</Text>
+          <Text style={styles.semEventosText}>
+            Nenhum evento nos próximos 7 dias.
+          </Text>
         </View>
       )}
 
-      {!state.isLoading && proximosEventos.length > 0 && (
+      {/* FEED UNIFICADO */}
+      {!isLoading && feedProximos.length > 0 && (
         <FlatList
-          data={proximosEventos}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <EventoCard evento={item} onPress={handlePressEvento} />
-          )}
+          data={feedProximos}
+          keyExtractor={(item) => `${item.kind}-${item.data.id}`}
+          renderItem={({ item }) => {
+            if (item.kind === "evento") {
+              return (
+                <EventoCard
+                  evento={item.data as IEvento}
+                  onPress={(e) => {
+                    setEventoSelecionado(e);
+                    setIsEventoDetailsVisible(true);
+                  }}
+                />
+              );
+            }
+            return (
+              <CompromissoCard
+                compromisso={item.data as ICompromissoPessoal}
+                onPress={(c) => {
+                  setCompromissoSelecionado(c);
+                  setIsCompromissoDetailsVisible(true);
+                }}
+              />
+            );
+          }}
           contentContainerStyle={{ paddingBottom: 20 }}
           showsVerticalScrollIndicator={false}
           style={styles.feed}
         />
       )}
 
-      {/* BOTÃO FIXO - ABRIR AGENDA */}
+      {/* BOTÃO FIXO — AGENDA */}
       <TouchableOpacity
         style={styles.agendaButton}
         onPress={() => navigation.navigate("Agenda")}
@@ -383,11 +541,11 @@ const HomeScreen: React.FC = () => {
         <Text style={styles.agendaButtonText}>📅 Abrir Agenda Completa</Text>
       </TouchableOpacity>
 
-      {/* MODAL DE DETALHES */}
+      {/* MODAL: detalhes de evento */}
       <EventoDetailsModal
-        isVisible={isDetailsVisible}
+        isVisible={isEventoDetailsVisible}
         onClose={() => {
-          setIsDetailsVisible(false);
+          setIsEventoDetailsVisible(false);
           setEventoSelecionado(null);
         }}
         evento={eventoSelecionado}
@@ -395,10 +553,37 @@ const HomeScreen: React.FC = () => {
         onDelete={() => { }}
       />
 
+      {/* MODAL: detalhes de compromisso */}
+      <CompromissoDetailsModal
+        isVisible={isCompromissoDetailsVisible}
+        onClose={() => {
+          setIsCompromissoDetailsVisible(false);
+          setCompromissoSelecionado(null);
+        }}
+        compromisso={compromissoSelecionado}
+        onEdit={handleEditCompromisso}
+        onDelete={handleDeleteCompromisso}
+      />
+
+      {/* MODAL: edição de compromisso (criação não disponível na Home) */}
+      <CompromissoFormModal
+        isVisible={isCompromissoFormVisible}
+        onClose={() => {
+          setIsCompromissoFormVisible(false);
+          setCompromissoToEdit(null);
+        }}
+        onSave={handleSaveCompromisso}
+        compromissoToEdit={compromissoToEdit}
+        isSubmitting={compromissosState.isSubmitting}
+      />
+
     </View>
   );
 };
 
+// -------------------------------------------
+// ESTILOS
+// -------------------------------------------
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -432,35 +617,6 @@ const styles = StyleSheet.create({
   },
   headerButtonText: {
     fontSize: 22,
-  },
-  scroll: {
-    flex: 1,
-    marginBottom: 120,
-  },
-  versiculoCard: {
-    backgroundColor: "#0A3D62",
-    margin: 15,
-    borderRadius: 12,
-    padding: 15,
-  },
-  versiculoLabel: {
-    fontSize: 12,
-    color: "#BEE5EB",
-    marginBottom: 8,
-    fontWeight: "600",
-  },
-  versiculoTexto: {
-    fontSize: 15,
-    color: "#fff",
-    fontStyle: "italic",
-    lineHeight: 22,
-  },
-  versiculoReferencia: {
-    fontSize: 13,
-    color: "#BEE5EB",
-    marginTop: 8,
-    textAlign: "right",
-    fontWeight: "600",
   },
   sectionTitle: {
     fontSize: 16,
@@ -498,10 +654,19 @@ const styles = StyleSheet.create({
   cardInfo: {
     flex: 1,
   },
+  cardTituloRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   cardTitulo: {
+    flex: 1,
     fontSize: 15,
     fontWeight: "700",
     color: "#222",
+  },
+  cardLockIcon: {
+    fontSize: 13,
   },
   cardTipo: {
     fontSize: 11,
@@ -525,42 +690,6 @@ const styles = StyleSheet.create({
   semEventosText: {
     fontSize: 14,
     color: "#6C757D",
-  },
-  adminPanel: {
-    margin: 15,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 15,
-    elevation: 1,
-  },
-  adminPanelTitle: {
-    fontSize: 15,
-    fontWeight: "bold",
-    color: "#0A3D62",
-    marginBottom: 12,
-  },
-  adminGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  adminGridButton: {
-    width: "47%",
-    backgroundColor: "#F8F9FA",
-    borderRadius: 8,
-    padding: 12,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#DEE2E6",
-  },
-  adminGridIcon: {
-    fontSize: 24,
-    marginBottom: 4,
-  },
-  adminGridText: {
-    fontSize: 13,
-    color: "#0A3D62",
-    fontWeight: "600",
   },
   agendaButton: {
     position: "absolute",
