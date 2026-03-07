@@ -1,5 +1,3 @@
-// src/presentation/context/AuthContext.tsx
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../../config/supabaseClient';
 import { serviceLocator } from '../../config/serviceLocator';
@@ -10,6 +8,7 @@ interface AuthContextType {
   isLoading: boolean;
   signIn: (usuario: IUsuario) => void;
   signOut: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,7 +19,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (usuario: IUsuario) => {
     setUser(usuario);
-    // Registra o token de notificação após login
     try {
       const token = await serviceLocator.notificationService.registerForPushNotifications();
       if (token) {
@@ -32,7 +30,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    // Remove o token antes de deslogar
     if (user) {
       try {
         await serviceLocator.notificationService.removeDeviceToken(user.id);
@@ -44,8 +41,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     serviceLocator.authService.logout();
   };
 
+  const refreshUser = async () => {
+    try {
+      const loggedUser = await serviceLocator.authService.getLoggedUser();
+      setUser(loggedUser);
+    } catch (e) {
+      console.error("Erro ao atualizar usuário:", e);
+    }
+  };
+
   useEffect(() => {
-    // 1. Verifica se já existe uma sessão salva ao abrir o app
     const checkSession = async () => {
       try {
         const loggedUser = await serviceLocator.authService.getLoggedUser();
@@ -60,23 +65,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     checkSession();
 
-    // 2. Fica escutando mudanças de sessão do Supabase em tempo real
-    // Isso garante que se o token expirar ou o usuário for deslogado,
-    // o app reage automaticamente — sem precisar reiniciar.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') {
         setUser(null);
       }
     });
 
-    // 3. Cancela o listener quando o componente for desmontado
     return () => {
       subscription.unsubscribe();
     };
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, isLoading, signIn, signOut, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

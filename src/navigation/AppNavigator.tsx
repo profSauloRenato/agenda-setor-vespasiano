@@ -14,6 +14,7 @@ import { EventosManagerScreen } from "../presentation/screens/admin/EventosManag
 import { useEventoUseCases } from "../config/serviceLocator";
 import AdminPanelScreen from "../presentation/screens/AdminPanelScreen";
 import VersiculosManagerScreen from "../presentation/screens/admin/VersiculosManagerScreen";
+import PerfilScreen from "../presentation/screens/PerfilScreen";
 
 // Importações do Admin Stack
 import LocalizacaoTypeSelectionScreen from "../presentation/screens/admin/LocalizacaoTypeSelectionScreen";
@@ -196,12 +197,23 @@ const MainStack = () => {
         }}
       />
 
+      {/* 8. Rota de Versículos e Mensagens */}
       <Stack.Screen
         name="VersiculosManager"
         component={VersiculosManagerScreen}
         options={{
           ...adminHeaderOptions,
           title: "Versículos e Mensagens",
+        }}
+      />
+
+      {/* 7. Rota de Painel do Usuário */}
+      <Stack.Screen
+        name="Perfil"
+        component={PerfilScreen}
+        options={{
+          ...adminHeaderOptions,
+          title: "Meu Perfil",
         }}
       />
     </Stack.Navigator>

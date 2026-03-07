@@ -94,6 +94,7 @@ export class SupabaseUsuarioService implements IUsuarioService {
       email: data.email,
       nome: data.nome,
       localizacao_id: data.localizacao_id,
+      nome_localizacao: data.nome_localizacao ?? undefined,
       is_admin: data.is_admin ?? false,
       pode_cadastrar_eventos: data.pode_cadastrar_eventos ?? false,
       device_token: data.device_token ?? null,

@@ -344,3 +344,4 @@ export const useVersiculoService = () => serviceLocator.versiculoService;
 export const useMensagemAdminService = () =>
   serviceLocator.mensagemAdminService;
 export const useNotificationService = () => serviceLocator.notificationService;
+export const useUsuarioService = () => serviceLocator.usuarioService;

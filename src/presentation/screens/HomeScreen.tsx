@@ -40,6 +40,7 @@ type RootStackParamList = {
   EventosManager: undefined;
   Agenda: undefined;
   AdminPanel: undefined;
+  Perfil: undefined;
 };
 
 // -------------------------------------------
@@ -457,12 +458,12 @@ const HomeScreen: React.FC = () => {
 
       {/* CABEÇALHO */}
       <View style={styles.header}>
-        <View>
+        <TouchableOpacity onPress={() => navigation.navigate("Perfil")}>
           <Text style={styles.headerSaudacao}>
-            Olá, {user?.nome?.split(" ")[0] ?? "irmão"}
+            Olá, {user?.nome?.split(" ")[0] ?? "irmão"} ›
           </Text>
           <Text style={styles.headerSubtitulo}>Agenda Setor Vespasiano</Text>
-        </View>
+        </TouchableOpacity>
         <View style={styles.headerActions}>
           {isAdmin && (
             <TouchableOpacity
@@ -473,7 +474,8 @@ const HomeScreen: React.FC = () => {
             </TouchableOpacity>
           )}
           <TouchableOpacity style={styles.headerButton} onPress={signOut}>
-            <Text style={styles.headerButtonText}>🚪</Text>
+            <Text style={styles.headerButtonTextOut}>🚪</Text>
+            <Text style={styles.headerButtonLabel}>Sair</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -616,7 +618,16 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   headerButtonText: {
-    fontSize: 22,
+    fontSize: 28,
+  },
+  headerButtonTextOut: {
+    fontSize: 18,
+  },
+  headerButtonLabel: {
+    fontSize: 10,
+    color: '#BEE5EB',
+    textAlign: 'center',
+    marginTop: 1,
   },
   sectionTitle: {
     fontSize: 16,
