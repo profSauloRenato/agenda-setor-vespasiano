@@ -25,6 +25,7 @@ export type CreateEventoParams = {
   recorrencia_semana_do_mes: number | null;
   evento_referencia_id: string | null;
   dias_antes_referencia: number | null;
+  modelo_id?: string | null;
   alertas?: IEventoAlerta[];
 };
 

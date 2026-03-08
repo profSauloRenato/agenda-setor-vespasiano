@@ -1,5 +1,3 @@
-// src/infra/services/SupabaseEventoService.ts
-
 import { SupabaseClient } from "@supabase/supabase-js";
 import { IEvento, IEventoAlerta } from "../../domain/models/IEvento";
 import { IEventoService } from "../../domain/services/IEventoService";
@@ -38,6 +36,11 @@ export class SupabaseEventoService implements IEventoService {
       criado_por: row.criado_por ?? null,
       criado_em: row.criado_em,
       atualizado_em: row.atualizado_em,
+      // Modelo
+      modelo_id: row.modelo_id ?? null,
+      nome_modelo: row.evento_modelo?.nome ?? null,
+      categoria_modelo: row.evento_modelo?.categoria ?? null,
+      // Localização
       nome_localizacao: row.localizacao?.nome ?? null,
       nome_responsavel: row.responsavel?.nome ?? null,
       endereco_rua: row.localizacao?.endereco_rua ?? null,
@@ -61,6 +64,7 @@ export class SupabaseEventoService implements IEventoService {
 
   private readonly SELECT_QUERY = `
     *,
+    evento_modelo:modelo_id (id, nome, categoria),
     localizacao:localizacao_id (nome, endereco_rua, endereco_numero, endereco_bairro, endereco_cidade, endereco_estado, endereco_cep),
     responsavel:responsavel_id (nome),
     evento_alerta (id, evento_id, horas_antes, enviado, enviado_em)
@@ -94,6 +98,40 @@ export class SupabaseEventoService implements IEventoService {
     return this.mapToIEvento(data);
   }
 
+  async buscarEventos(params: {
+    dataInicio?: string;
+    dataFim?: string;
+    localizacaoIds?: string[];
+    modeloIds?: string[];
+    cargosVisiveis?: string[];
+    categoriaModelo?: string;
+  }): Promise<IEvento[]> {
+    let query = this.supabase
+      .from(this.DB_TABLE)
+      .select(this.SELECT_QUERY)
+      .order("data_inicio", { ascending: true });
+
+    if (params.dataInicio) query = query.gte("data_inicio", params.dataInicio);
+    if (params.dataFim) query = query.lte("data_inicio", params.dataFim);
+    if (params.localizacaoIds && params.localizacaoIds.length > 0)
+      query = query.in("localizacao_id", params.localizacaoIds);
+    if (params.modeloIds && params.modeloIds.length > 0)
+      query = query.in("modelo_id", params.modeloIds);
+    if (params.cargosVisiveis && params.cargosVisiveis.length > 0)
+      query = query.overlaps("cargos_visiveis", params.cargosVisiveis);
+
+    const { data, error } = await query;
+    if (error) throw new Error(`Falha ao buscar eventos: ${error.message}`);
+
+    // Filtro por categoria do modelo (feito em memória pois é join)
+    let eventos = (data ?? []).map(this.mapToIEvento.bind(this));
+    if (params.categoriaModelo) {
+      eventos = eventos.filter((e) => e.categoria_modelo === params.categoriaModelo);
+    }
+
+    return eventos;
+  }
+
   async createEvento(
     data: CreateEventoParams,
     criadoPorId: string,
@@ -119,6 +157,7 @@ export class SupabaseEventoService implements IEventoService {
         recorrencia_semana_do_mes: data.recorrencia_semana_do_mes,
         evento_referencia_id: data.evento_referencia_id,
         dias_antes_referencia: data.dias_antes_referencia,
+        modelo_id: data.modelo_id ?? null,
         criado_por: criadoPorId,
       })
       .select(this.SELECT_QUERY)
@@ -126,7 +165,6 @@ export class SupabaseEventoService implements IEventoService {
 
     if (error) throw new Error(`Falha ao criar evento: ${error.message}`);
 
-    // Salva alertas se existirem
     if (data.alertas && data.alertas.length > 0) {
       await this.saveAlertas(created.id, data.alertas);
     }
@@ -156,6 +194,7 @@ export class SupabaseEventoService implements IEventoService {
         recorrencia_semana_do_mes: data.recorrencia_semana_do_mes,
         evento_referencia_id: data.evento_referencia_id,
         dias_antes_referencia: data.dias_antes_referencia,
+        modelo_id: data.modelo_id ?? null,
       })
       .eq("id", data.id)
       .select(this.SELECT_QUERY)
@@ -163,7 +202,6 @@ export class SupabaseEventoService implements IEventoService {
 
     if (error) throw new Error(`Falha ao atualizar evento: ${error.message}`);
 
-    // Apaga alertas antigos e salva os novos
     if (data.alertas !== undefined) {
       await this.supabase
         .from(this.ALERTA_TABLE)
@@ -197,7 +235,6 @@ export class SupabaseEventoService implements IEventoService {
     }));
 
     const { error } = await this.supabase.from(this.ALERTA_TABLE).insert(rows);
-
     if (error) {
       console.error("Erro ao salvar alertas:", error);
     }

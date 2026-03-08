@@ -15,6 +15,7 @@ import { useEventoUseCases } from "../config/serviceLocator";
 import AdminPanelScreen from "../presentation/screens/AdminPanelScreen";
 import VersiculosManagerScreen from "../presentation/screens/admin/VersiculosManagerScreen";
 import PerfilScreen from "../presentation/screens/PerfilScreen";
+import EventoModelosManagerScreen from "../presentation/screens/admin/EventoModelosManagerScreen";
 
 // Importações do Admin Stack
 import LocalizacaoTypeSelectionScreen from "../presentation/screens/admin/LocalizacaoTypeSelectionScreen";
@@ -207,13 +208,23 @@ const MainStack = () => {
         }}
       />
 
-      {/* 7. Rota de Painel do Usuário */}
+      {/* 9. Rota de Painel do Usuário */}
       <Stack.Screen
         name="Perfil"
         component={PerfilScreen}
         options={{
           ...adminHeaderOptions,
           title: "Meu Perfil",
+        }}
+      />
+
+      {/* 10. Rota de Nomes dos Eventos/Reuniões */}
+      <Stack.Screen
+        name="EventoModelosManager"
+        component={EventoModelosManagerScreen}
+        options={{
+          ...adminHeaderOptions,
+          title: "Modelos de Eventos",
         }}
       />
     </Stack.Navigator>

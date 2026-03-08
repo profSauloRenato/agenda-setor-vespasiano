@@ -69,6 +69,9 @@ export interface IEvento {
   atualizado_em: string;
 
   // Campos enriquecidos (join — opcionais)
+  modelo_id?: string | null;
+  nome_modelo?: string | null;
+  categoria_modelo?: 'evento' | 'reuniao_fixa' | null;
   nome_localizacao?: string | null;
   nome_responsavel?: string | null;
   nomes_cargos?: string[];

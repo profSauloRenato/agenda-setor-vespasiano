@@ -23,6 +23,14 @@ import { UpdateCompromisso, IUpdateCompromisso } from '../domain/use_cases/compr
 import { DeleteCompromisso, IDeleteCompromisso } from '../domain/use_cases/compromissos/DeleteCompromisso';
 import { CompromissoUseCases } from '../presentation/view_models/CompromissosViewModel';
 
+// Evento Modelos
+import { SupabaseEventoModeloService } from '../infra/services/SupabaseEventoModeloService';
+import { IEventoModeloService } from '../domain/services/IEventoModeloService';
+import { GetAllEventoModelos, IGetAllEventoModelos } from '../domain/use_cases/evento_modelos/GetAllEventoModelos';
+import { CreateEventoModelo, ICreateEventoModelo } from '../domain/use_cases/evento_modelos/CreateEventoModelo';
+import { UpdateEventoModelo, IUpdateEventoModelo } from '../domain/use_cases/evento_modelos/UpdateEventoModelo';
+import { DeleteEventoModelo, IDeleteEventoModelo } from '../domain/use_cases/evento_modelos/DeleteEventoModelo';
+
 // --- Dependências da camada de Domain (Use Cases) ---
 // Auth
 import { ILoginUser, LoginUser } from "../domain/use_cases/LoginUser";
@@ -141,6 +149,13 @@ interface IServiceLocator {
   updateCompromisso: IUpdateCompromisso;
   deleteCompromisso: IDeleteCompromisso;
 
+  // Evento Modelos
+  eventoModeloService: IEventoModeloService;
+  getAllEventoModelos: IGetAllEventoModelos;
+  createEventoModelo: ICreateEventoModelo;
+  updateEventoModelo: IUpdateEventoModelo;
+  deleteEventoModelo: IDeleteEventoModelo;
+
   usuariosViewModel: UsuariosViewModel; // Serviços de Data (Geralmente não expostos, mas úteis para testes)
 
   authService: IAuthService;
@@ -216,6 +231,15 @@ const createCompromisso: ICreateCompromisso = new CreateCompromisso(compromissoP
 const updateCompromisso: IUpdateCompromisso = new UpdateCompromisso(compromissoPessoalService);
 const deleteCompromisso: IDeleteCompromisso = new DeleteCompromisso(compromissoPessoalService);
 
+// Serviço de Modelos de Eventos
+const eventoModeloService: IEventoModeloService =
+  new SupabaseEventoModeloService(supabaseClient);
+
+const getAllEventoModelos: IGetAllEventoModelos = new GetAllEventoModelos(eventoModeloService);
+const createEventoModelo: ICreateEventoModelo = new CreateEventoModelo(eventoModeloService);
+const updateEventoModelo: IUpdateEventoModelo = new UpdateEventoModelo(eventoModeloService);
+const deleteEventoModelo: IDeleteEventoModelo = new DeleteEventoModelo(eventoModeloService);
+
 // -----------------------------------------------------
 // 3. Inicialização dos View Models (Camada de Presentation)
 // -----------------------------------------------------
@@ -264,6 +288,13 @@ export const serviceLocator: IServiceLocator = {
   createCompromisso,
   updateCompromisso,
   deleteCompromisso,
+
+  // Evento Modelos
+  eventoModeloService,
+  getAllEventoModelos,
+  createEventoModelo,
+  updateEventoModelo,
+  deleteEventoModelo,
 
   usuariosViewModel, // Serviços de Data
 
@@ -332,6 +363,16 @@ export const useCompromissoUseCases = (): CompromissoUseCases => ({
   update: serviceLocator.updateCompromisso,
   delete: serviceLocator.deleteCompromisso,
 });
+
+// Hook para Use Cases de Modelos de Eventos
+export const useEventoModeloUseCases = () => ({
+  getAll: serviceLocator.getAllEventoModelos,
+  create: serviceLocator.createEventoModelo,
+  update: serviceLocator.updateEventoModelo,
+  delete: serviceLocator.deleteEventoModelo,
+});
+
+export const useEventoModeloService = () => serviceLocator.eventoModeloService;
 
 // HOOK DE CONVENIÊNCIA para injeção completa na tela UsuariosManagerScreen
 export const useUsuarioManagerDependencies = () => ({

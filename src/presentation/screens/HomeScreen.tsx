@@ -41,6 +41,7 @@ type RootStackParamList = {
   Agenda: undefined;
   AdminPanel: undefined;
   Perfil: undefined;
+  EventoModelosManager: undefined;
 };
 
 // -------------------------------------------

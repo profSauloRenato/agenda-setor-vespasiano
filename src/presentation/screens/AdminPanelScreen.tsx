@@ -10,6 +10,7 @@ type RootStackParamList = {
   LocalizacaoTypeSelection: undefined;
   EventosManager: undefined;
   VersiculosManager: undefined;
+  EventoModelosManager: undefined;
 };
 
 const AdminPanelScreen: React.FC = () => {
@@ -17,6 +18,7 @@ const AdminPanelScreen: React.FC = () => {
 
   const menuItems = [
     { icon: "📋", label: "Eventos", rota: "EventosManager" },
+    { icon: "🗂️", label: "Modelos de Eventos", rota: "EventoModelosManager" },
     { icon: "👥", label: "Membros", rota: "UsuariosManager" },
     { icon: "📍", label: "Localizações", rota: "LocalizacaoTypeSelection" },
     { icon: "🏷️", label: "Cargos", rota: "CargosManager" },
