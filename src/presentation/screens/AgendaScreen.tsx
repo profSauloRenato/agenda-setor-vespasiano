@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { Calendar, LocaleConfig } from "react-native-calendars";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { IEvento } from "../../domain/models/IEvento";
 import { ICompromissoPessoal } from "../../domain/models/ICompromissoPessoal";
 import { useEventoUseCases, useCompromissoUseCases } from "../../config/serviceLocator";
@@ -144,6 +144,7 @@ const CompromissoCard: React.FC<{
 const AgendaScreen: React.FC<{ route?: any }> = ({ route }) => {
   const eventoUseCases = useEventoUseCases();
   const compromissoUseCases = useCompromissoUseCases();
+  const navigation = useNavigation<any>();
 
   const { state: eventosState, loadEventos } = useEventosViewModel(eventoUseCases);
   const {
@@ -319,19 +320,16 @@ const AgendaScreen: React.FC<{ route?: any }> = ({ route }) => {
         </View>
       </View>
 
-      {/* BARRA: data + botão novo compromisso */}
+      {/* BARRA: data + lupa */}
       <View style={styles.barraDia}>
         <Text style={styles.dataSelecionadaText} numberOfLines={1}>
           {formatarDataExibicao(dataSelecionada)}
         </Text>
         <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => {
-            setCompromissoToEdit(null);
-            setIsCompromissoFormVisible(true);
-          }}
+          style={styles.buscaButton}
+          onPress={() => navigation.navigate("Busca" as any)}
         >
-          <Text style={styles.addButtonText}>+ Compromisso</Text>
+          <Text style={styles.buscaButtonText}>🔍</Text>
         </TouchableOpacity>
       </View>
 
@@ -416,6 +414,17 @@ const AgendaScreen: React.FC<{ route?: any }> = ({ route }) => {
         compromissoToEdit={compromissoToEdit}
         isSubmitting={compromissosState.isSubmitting}
       />
+
+      {/* BOTÃO FLUTUANTE — novo compromisso */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => {
+          setCompromissoToEdit(null);
+          setIsCompromissoFormVisible(true);
+        }}
+      >
+        <Text style={styles.fabText}>+</Text>
+      </TouchableOpacity>
 
     </View>
   );
@@ -552,6 +561,40 @@ const styles = StyleSheet.create({
     color: "#AAA",
     marginTop: 8,
     textAlign: "center",
+  },
+  barraAcoes: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  buscaButton: {
+    backgroundColor: "#17A2B8",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 18,
+    marginRight: 6,
+  },
+  buscaButtonText: {
+    fontSize: 22,
+  },
+  fab: {
+    position: "absolute",
+    bottom: 64,
+    right: 20,
+    backgroundColor: "#4A4A6A",
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    borderRadius: 20,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  fabText: {
+    color: "#fff",
+    fontSize: 24,
+    fontWeight: "700",
   },
 });
 

@@ -31,6 +31,8 @@ import { CreateEventoModelo, ICreateEventoModelo } from '../domain/use_cases/eve
 import { UpdateEventoModelo, IUpdateEventoModelo } from '../domain/use_cases/evento_modelos/UpdateEventoModelo';
 import { DeleteEventoModelo, IDeleteEventoModelo } from '../domain/use_cases/evento_modelos/DeleteEventoModelo';
 
+import { BuscarEventos, IBuscarEventos } from '../domain/use_cases/eventos/BuscarEventos';
+
 // --- Dependências da camada de Domain (Use Cases) ---
 // Auth
 import { ILoginUser, LoginUser } from "../domain/use_cases/LoginUser";
@@ -141,6 +143,7 @@ interface IServiceLocator {
   updateEvento: IUpdateEvento;
   deleteEvento: IDeleteEvento;
   eventoService: IEventoService;
+  buscarEventos: IBuscarEventos;
 
   // Compromissos Pessoais
   compromissoPessoalService: ICompromissoPessoalService;
@@ -220,6 +223,7 @@ const getAllEventos: IGetAllEventos = new GetAllEventos(eventoService);
 const createEvento: ICreateEvento = new CreateEvento(eventoService);
 const updateEvento: IUpdateEvento = new UpdateEvento(eventoService);
 const deleteEvento: IDeleteEvento = new DeleteEvento(eventoService);
+const buscarEventos: IBuscarEventos = new BuscarEventos(eventoService);
 
 // Serviço de Compromissos Pessoais
 const compromissoPessoalService: ICompromissoPessoalService =
@@ -281,6 +285,7 @@ export const serviceLocator: IServiceLocator = {
   updateEvento,
   deleteEvento,
   eventoService,
+  buscarEventos,
 
   // Compromissos Pessoais
   compromissoPessoalService,
@@ -354,6 +359,7 @@ export const useEventoUseCases = () => ({
   createEvento: serviceLocator.createEvento,
   updateEvento: serviceLocator.updateEvento,
   deleteEvento: serviceLocator.deleteEvento,
+  buscarEventos: serviceLocator.buscarEventos,
 });
 
 // Hook para Use Cases de Compromissos Pessoais

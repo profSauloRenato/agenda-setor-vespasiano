@@ -16,6 +16,7 @@ import AdminPanelScreen from "../presentation/screens/AdminPanelScreen";
 import VersiculosManagerScreen from "../presentation/screens/admin/VersiculosManagerScreen";
 import PerfilScreen from "../presentation/screens/PerfilScreen";
 import EventoModelosManagerScreen from "../presentation/screens/admin/EventoModelosManagerScreen";
+import BuscaScreen from "../presentation/screens/BuscaScreen";
 
 // Importações do Admin Stack
 import LocalizacaoTypeSelectionScreen from "../presentation/screens/admin/LocalizacaoTypeSelectionScreen";
@@ -225,6 +226,16 @@ const MainStack = () => {
         options={{
           ...adminHeaderOptions,
           title: "Modelos de Eventos",
+        }}
+      />
+
+      {/* 11. Rota de Tela de Busca/Filtros */}
+      <Stack.Screen
+        name="Busca"
+        component={BuscaScreen}
+        options={{
+          ...adminHeaderOptions,
+          title: "Buscar Eventos",
         }}
       />
     </Stack.Navigator>
