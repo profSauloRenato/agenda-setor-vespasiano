@@ -264,6 +264,7 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
   }>>([]);
   const [showVinculadoTimePicker, setShowVinculadoTimePicker] = useState(false);
   const [editingVinculadoIndex, setEditingVinculadoIndex] = useState<number | null>(null);
+  const [showTimeFim, setShowTimeFim] = useState(false);
 
   const OPCOES_ALERTA = [
     { label: "1 hora antes", value: 1 },
@@ -559,16 +560,37 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
           />
         )}
 
-        <Text style={styles.label}>Fim (opcional)</Text>
-        <TouchableOpacity style={styles.dateButton} onPress={() => setShowDateFim(true)}>
-          <Text style={styles.dateButtonText}>
-            📅 {form.data_fim ? formatDate(form.data_fim) : "Não definida"}
-          </Text>
-        </TouchableOpacity>
-        {form.data_fim && (
-          <TouchableOpacity onPress={() => setForm((p) => ({ ...p, data_fim: null }))}>
-            <Text style={styles.clearText}>Remover data fim</Text>
-          </TouchableOpacity>
+        {/* DATA/HORA FIM */}
+        <View style={styles.switchRowFim}>
+          <Text style={styles.label}>Definir horário de término</Text>
+          <Switch
+            value={form.data_fim !== null}
+            onValueChange={(v) =>
+              setForm((p) => ({
+                ...p,
+                data_fim: v ? new Date(p.data_inicio) : null,
+              }))
+            }
+            trackColor={{ false: "#767577", true: "#17A2B8" }}
+            thumbColor="#fff"
+          />
+        </View>
+
+        {form.data_fim !== null && (
+          <View style={styles.dateRow}>
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => setShowDateFim(true)}
+            >
+              <Text style={styles.dateButtonText}>📅 {formatDate(form.data_fim)}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => setShowTimeFim(true)}
+            >
+              <Text style={styles.dateButtonText}>🕐 {formatTime(form.data_fim)}</Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         {showDateFim && (
@@ -578,7 +600,27 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
             display="default"
             onChange={(_, date) => {
               setShowDateFim(false);
-              if (date) setForm((p) => ({ ...p, data_fim: date }));
+              if (date) {
+                const updated = new Date(form.data_fim!);
+                updated.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+                setForm((p) => ({ ...p, data_fim: updated }));
+              }
+            }}
+          />
+        )}
+
+        {showTimeFim && (
+          <DateTimePicker
+            value={form.data_fim || new Date()}
+            mode="time"
+            display="default"
+            onChange={(_, date) => {
+              setShowTimeFim(false);
+              if (date) {
+                const updated = new Date(form.data_fim!);
+                updated.setHours(date.getHours(), date.getMinutes());
+                setForm((p) => ({ ...p, data_fim: updated }));
+              }
             }}
           />
         )}
@@ -600,16 +642,6 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
               </TouchableOpacity>
             );
           })}
-        </View>
-
-        {/* RSVP */}
-        <View style={styles.switchRow}>
-          <Text style={styles.label}>Habilitar RSVP (Confirmação de Presença)</Text>
-          <Switch
-            value={form.rsvp_habilitado}
-            onValueChange={(v) => setForm((p) => ({ ...p, rsvp_habilitado: v }))}
-            trackColor={{ false: "#767577", true: "#0A3D62" }}
-          />
         </View>
 
         {/* RECORRÊNCIA */}
@@ -1021,4 +1053,11 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   addVinculadoButtonText: { color: "#17A2B8", fontSize: 14, fontWeight: "600" },
+  switchRowFim: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 12,
+    marginBottom: 6,
+  },
 });
