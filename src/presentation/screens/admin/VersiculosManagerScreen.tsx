@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useAuth } from "../../context/AuthContext";
-import { useMensagemAdminService, useVersiculoService } from "../../../config/serviceLocator";
+import { useMensagemAdminService, useVersiculoService, useNotificationService } from "../../../config/serviceLocator";
 import { IVersiculo } from "../../../domain/models/IVersiculo";
 import { IMensagemAdmin } from "../../../domain/models/IMensagemAdmin";
 import { ICargo } from "../../../domain/models/ICargo";
@@ -38,6 +38,7 @@ const VersiculosManagerScreen: React.FC = () => {
   const { user } = useAuth();
   const versiculoService = useVersiculoService();
   const mensagemService = useMensagemAdminService();
+  const notificationService = useNotificationService();
 
   const [aba, setAba] = useState<Aba>("versiculos");
 
@@ -58,6 +59,7 @@ const VersiculosManagerScreen: React.FC = () => {
   const [localizacoesDisponiveis, setLocalizacoesDisponiveis] = useState<ILocalizacao[]>([]);
   const [mLocalizacaoId, setMLocalizacaoId] = useState<string | null>(null);
   const [mCargosVisiveis, setMCargosVisiveis] = useState<string[]>([]);
+  const [mEnviarPush, setMEnviarPush] = useState(false);
 
   // Form versículo
   const [vTexto, setVTexto] = useState("");
@@ -170,6 +172,7 @@ const VersiculosManagerScreen: React.FC = () => {
     setMTitulo("");
     setMTexto("");
     setMAtiva(true);
+    setMEnviarPush(false);
     setIsFormMVisible(true);
     setMLocalizacaoId(null);
     setMCargosVisiveis([]);
@@ -203,9 +206,29 @@ const VersiculosManagerScreen: React.FC = () => {
         });
       } else {
         await mensagemService.createMensagem(
-          { titulo: mTitulo, texto: mTexto, ativa: mAtiva, localizacao_id: mLocalizacaoId, cargos_visiveis: mCargosVisiveis, criado_por: null },
+          {
+            titulo: mTitulo,
+            texto: mTexto,
+            ativa: mAtiva,
+            localizacao_id: mLocalizacaoId,
+            cargos_visiveis: mCargosVisiveis,
+            criado_por: null,
+          },
           user.id
         );
+
+        // Envia push se solicitado
+        if (mEnviarPush) {
+          const resultado = await notificationService.enviarPushMensagem({
+            titulo: mTitulo,
+            cargosVisiveis: mCargosVisiveis,
+            localizacaoId: mLocalizacaoId,
+          });
+          Alert.alert(
+            "Push enviado",
+            `Notificações enviadas: ${resultado.enviados}\nErros: ${resultado.erros}`
+          );
+        }
       }
       setIsFormMVisible(false);
       loadMensagens();
@@ -475,6 +498,23 @@ const VersiculosManagerScreen: React.FC = () => {
                 <Text style={styles.label}>Mensagem ativa</Text>
                 <Switch value={mAtiva} onValueChange={setMAtiva} />
               </View>
+
+              {/* Toggle push — somente ao criar */}
+              {!mensagemToEdit && (
+                <View style={styles.switchRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.label}>Enviar notificação push</Text>
+                    <Text style={styles.infoText}>
+                      Os destinatários receberão uma notificação ao salvar.
+                    </Text>
+                  </View>
+                  <Switch
+                    value={mEnviarPush}
+                    onValueChange={setMEnviarPush}
+                    trackColor={{ false: "#767577", true: "#17A2B8" }}
+                  />
+                </View>
+              )}
             </ScrollView>
 
             <View style={styles.modalButtons}>
