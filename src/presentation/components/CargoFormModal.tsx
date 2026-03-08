@@ -2,14 +2,14 @@
 
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Modal,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Modal,
+    StyleSheet,
+    Switch,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { ICargo } from '../../domain/models/ICargo';
 import { CreateCargoParams } from '../../domain/use_cases/cargos/CreateCargo';
@@ -29,16 +29,16 @@ interface FormState {
 interface CargoFormModalProps {
     isVisible: boolean;
     onClose: () => void;
-    
+
     // Se 'cargo' for fornecido, é uma edição; caso contrário, é uma criação.
-    cargo?: ICargo; 
+    cargo?: ICargo;
 
     // Funções de manipulação (ViewModel)
     onSubmit: (data: ICargo | CreateCargoParams) => Promise<ICargo | undefined>;
-    
+
     // Estado de carregamento global do ViewModel
     isLoading: boolean;
-    
+
     // Erro do ViewModel
     error?: string | null;
 }
@@ -46,15 +46,15 @@ interface CargoFormModalProps {
 /**
  * Modal reutilizável para criar ou editar um cargo.
  */
-const CargoFormModal: React.FC<CargoFormModalProps> = ({ 
-    isVisible, 
-    onClose, 
-    cargo, 
+const CargoFormModal: React.FC<CargoFormModalProps> = ({
+    isVisible,
+    onClose,
+    cargo,
     onSubmit,
     isLoading,
-    error 
+    error
 }) => {
-    
+
     // Define o estado inicial padrão
     const initialState: FormState = {
         nome: '',
@@ -85,13 +85,13 @@ const CargoFormModal: React.FC<CargoFormModalProps> = ({
 
     const handleSubmit = async () => {
         // Objeto de dados a ser enviado
-        const dataToSend = isEditing 
+        const dataToSend = isEditing
             ? { ...form, id: cargo.id, pode_enviar_push: form.pode_enviar_push } as ICargo // Se edição, precisa do ID
             : form as CreateCargoParams; // Se criação, é apenas o payload
 
         // Envia para o ViewModel
         const result = await onSubmit(dataToSend);
-        
+
         // Se o resultado for bem-sucedido e não houver erro, fecha o modal
         if (result && !error) {
             onClose();
@@ -131,7 +131,7 @@ const CargoFormModal: React.FC<CargoFormModalProps> = ({
                         numberOfLines={3}
                         maxLength={255}
                     />
-                    
+
                     {/* Campo de Permissão Push */}
                     <View style={styles.switchContainer}>
                         <Text style={styles.switchLabel}>Pode Enviar Notificações Push?</Text>
@@ -148,8 +148,8 @@ const CargoFormModal: React.FC<CargoFormModalProps> = ({
 
                     {/* Botões de Ação */}
                     <View style={styles.buttonContainer}>
-                        <TouchableOpacity 
-                            style={[styles.button, styles.cancelButton]} 
+                        <TouchableOpacity
+                            style={[styles.button, styles.cancelButton]}
                             onPress={onClose}
                             disabled={isLoading}
                         >
@@ -164,7 +164,7 @@ const CargoFormModal: React.FC<CargoFormModalProps> = ({
                             {isLoading ? (
                                 <ActivityIndicator color="#fff" />
                             ) : (
-                                <Text style={styles.textStyle}>{isEditing ? 'Salvar Alterações' : 'Criar Cargo'}</Text>
+                                <Text style={styles.textStyle}>{isEditing ? 'Salvar' : 'Criar Cargo'}</Text>
                             )}
                         </TouchableOpacity>
                     </View>

@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "agenda-setor-vespasiano",
-    "slug": "agenda-setor-vespasiano",
+    "name": "Agenda Setor",
+    "slug": "agenda-setor",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./src/presentation/assets/icon.png",
@@ -10,7 +10,7 @@
     "splash": {
       "image": "./src/presentation/assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0A3D62"
     },
     "ios": {
       "supportsTablet": true,
@@ -23,7 +23,7 @@
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./src/presentation/assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0A3D62"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,

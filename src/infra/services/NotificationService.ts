@@ -141,7 +141,7 @@ export class NotificationService {
       const mensagens = tokensDestino.map((token) => ({
         to: token,
         sound: "default",
-        title: "📢 Nova mensagem no App",
+        title: "📢 Nova mensagem na Agenda",
         body: `A Paz de Deus! Tem uma nova mensagem de seu interesse no App.\nAssunto: ${params.titulo}`,
         data: { tipo: "mensagem_admin" },
       }));

@@ -3,6 +3,7 @@
 import React from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -16,6 +17,7 @@ import {
 // Importa o ViewModel e o Use Case
 import { useLoginUseCase, useNotificationService } from '../../config/serviceLocator';
 import { useLoginViewModel } from '../view_models/LoginViewModel';
+import { supabase } from '../../config/supabaseClient';
 
 // --- DEFINIÇÕES DE ESTILO TEMÁTICO ---
 const COLORS = {
@@ -34,6 +36,23 @@ const LoginScreen: React.FC = () => {
   // Criação do ViewModel (com a dependência injetada)
   const { state, setField, handleLogin } = useLoginViewModel(loginUserUseCase, notificationService);
 
+  const handleEsqueceuSenha = async () => {
+    if (!state.email.trim()) {
+      Alert.alert("Atenção", "Digite seu e-mail no campo acima antes de continuar.");
+      return;
+    }
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(state.email.trim());
+      if (error) throw error;
+      Alert.alert(
+        "E-mail enviado",
+        "Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha."
+      );
+    } catch (e: any) {
+      Alert.alert("Erro", e?.message ?? "Falha ao enviar e-mail de recuperação.");
+    }
+  };
+
   return (
     <View style={styles.safeArea}>
       <KeyboardAvoidingView
@@ -43,13 +62,12 @@ const LoginScreen: React.FC = () => {
         <View style={styles.container}>
 
           {/* LOGO E TÍTULO */}
-          {/* Substitua esta imagem pela imagem oficial da Congregação/Setor */}
           <Image
             source={require('../assets/icon.png')} // Usando o ícone do projeto como placeholder
             style={styles.logo}
             resizeMode="contain"
           />
-          <Text style={styles.title}>Agenda Setor Vespasiano</Text>
+          <Text style={styles.title}>Agenda Setor</Text>
           <Text style={styles.subtitle}>Acesso Restrito</Text>
 
           {/* CAMPO EMAIL */}
@@ -93,8 +111,11 @@ const LoginScreen: React.FC = () => {
             )}
           </TouchableOpacity>
 
-          {/* Opção para Cadastro/Recuperação (Funcionalidade futura) */}
-          <TouchableOpacity style={styles.linkButton} disabled={state.isLoading}>
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={handleEsqueceuSenha}
+            disabled={state.isLoading}
+          >
             <Text style={styles.linkText}>Esqueceu a senha?</Text>
           </TouchableOpacity>
         </View>
