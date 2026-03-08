@@ -42,13 +42,20 @@ const LoginScreen: React.FC = () => {
       return;
     }
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(state.email.trim());
-      if (error) throw error;
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        state.email.trim(),
+        { redirectTo: "com.setorvespasiano.agenda://reset-password" }
+      );
+      if (error) {
+        console.log("Supabase error completo:", JSON.stringify(error, null, 2));
+        throw error;
+      }
       Alert.alert(
         "E-mail enviado",
         "Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha."
       );
     } catch (e: any) {
+      console.log("Catch error completo:", JSON.stringify(e, null, 2));
       Alert.alert("Erro", e?.message ?? "Falha ao enviar e-mail de recuperação.");
     }
   };
@@ -111,13 +118,14 @@ const LoginScreen: React.FC = () => {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.linkButton}
-            onPress={handleEsqueceuSenha}
-            disabled={state.isLoading}
-          >
-            <Text style={styles.linkText}>Esqueceu a senha?</Text>
-          </TouchableOpacity>
+          <View style={styles.linkButton}>
+            <Text style={styles.linkText}>
+              Esqueceu a senha?
+            </Text>
+            <Text style={styles.linkText}>
+              Fale com um administrador.
+            </Text>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </View>
@@ -196,7 +204,7 @@ const styles = StyleSheet.create({
   linkText: {
     color: COLORS.primaryBlue,
     fontSize: 14,
-    textDecorationLine: 'underline',
+    textAlign: 'center',
   },
 });
 
