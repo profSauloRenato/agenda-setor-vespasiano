@@ -25,6 +25,7 @@ import {
 import { LocalizacaoCreateModal } from "./components/LocalizacaoCreateModal";
 import LocalizacaoDetailsModal from "./components/LocalizacaoDetailsModal";
 import { LocalizacaoEditModal } from "./components/LocalizacaoEditModal";
+import SafeScreen from "../../components/SafeScreen";
 
 type AdminStackParamList = {
   LocalizacoesManager: { locationType: LocalizacaoTipo };
@@ -214,7 +215,7 @@ const LocalizacoesManagerScreenComponent: React.FC<LocalizacoesManagerScreenProp
   }, [state.error, state.isSubmitting]);
 
   return (
-    <View style={styles.container}>
+    <SafeScreen style={styles.container}>
       <Text style={styles.header}>
         Gerenciamento de {pluralizedLocationType}
       </Text>
@@ -293,7 +294,7 @@ const LocalizacoesManagerScreenComponent: React.FC<LocalizacoesManagerScreenProp
           );
         }}
       />
-    </View>
+    </SafeScreen>
   );
 };
 

@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { IEventoModelo, CategoriaEventoModelo } from "../../../domain/models/IEventoModelo";
 import { useEventoModeloUseCases } from "../../../config/serviceLocator";
+import SafeScreen from "../../components/SafeScreen";
 
 // -------------------------------------------
 // HELPERS
@@ -59,7 +60,7 @@ const ModeloFormModal: React.FC<{
 
   return (
     <Modal visible={isVisible} animationType="slide" presentationStyle="pageSheet">
-      <View style={styles.modalContainer}>
+      <SafeScreen style={styles.modalContainer}>
 
         {/* Header */}
         <View style={styles.modalHeader}>
@@ -125,7 +126,7 @@ const ModeloFormModal: React.FC<{
           </Text>
 
         </ScrollView>
-      </View>
+      </SafeScreen>
     </Modal>
   );
 };
@@ -291,7 +292,7 @@ const EventoModelosManagerScreen: React.FC = () => {
   const reunioes = modelos.filter((m) => m.categoria === "reuniao_fixa");
 
   return (
-    <View style={styles.container}>
+    <SafeScreen style={styles.container}>
 
       {/* Barra de ações */}
       <View style={styles.barra}>
@@ -385,7 +386,7 @@ const EventoModelosManagerScreen: React.FC = () => {
         isSaving={isSaving}
       />
 
-    </View>
+    </SafeScreen>
   );
 };
 

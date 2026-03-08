@@ -23,6 +23,7 @@ import { ICargo } from "../../../domain/models/ICargo";
 import { ILocalizacao } from "../../../domain/models/ILocalizacao";
 import { useCargoUseCases, useLocalizacaoUseCases } from "../../../config/serviceLocator";
 import { Picker } from "@react-native-picker/picker";
+import SafeScreen from "../../components/SafeScreen";
 
 type Aba = "versiculos" | "mensagens";
 
@@ -252,7 +253,7 @@ const VersiculosManagerScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeScreen style={styles.container}>
 
       {/* ABAS */}
       <View style={styles.abas}>
@@ -538,7 +539,7 @@ const VersiculosManagerScreen: React.FC = () => {
         </View>
       </Modal>
 
-    </View>
+    </SafeScreen>
   );
 };
 

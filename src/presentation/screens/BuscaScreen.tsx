@@ -22,6 +22,7 @@ import {
   serviceLocator,
 } from "../../config/serviceLocator";
 import EventoDetailsModal from "./admin/components/EventoDetailsModal";
+import SafeScreen from "../components/SafeScreen";
 
 // -------------------------------------------
 // PERÍODOS PRÉ-DEFINIDOS
@@ -156,7 +157,7 @@ const ModalFiltros: React.FC<{
 
   return (
     <Modal visible={isVisible} animationType="slide" presentationStyle="pageSheet">
-      <View style={styles.modalContainer}>
+      <SafeScreen style={styles.modalContainer}>
 
         {/* Header */}
         <View style={styles.modalHeader}>
@@ -294,7 +295,7 @@ const ModalFiltros: React.FC<{
           </TouchableOpacity>
         </View>
 
-      </View>
+      </SafeScreen>
     </Modal>
   );
 };
@@ -403,7 +404,7 @@ const BuscaScreen: React.FC = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeScreen style={styles.container}>
 
       {/* ESTADO INICIAL — antes de qualquer busca */}
       {!buscaFeita && !isBuscando && (
@@ -498,7 +499,7 @@ const BuscaScreen: React.FC = () => {
         onDelete={() => { }}
       />
 
-    </View>
+    </SafeScreen>
   );
 };
 

@@ -20,6 +20,7 @@ import { CreateCompromissoParams, UpdateCompromissoParams } from "../../domain/u
 import EventoDetailsModal from "./admin/components/EventoDetailsModal";
 import { CompromissoFormModal } from "./agenda/components/CompromissoFormModal";
 import CompromissoDetailsModal from "./agenda/components/CompromissoDetailsModal";
+import SafeScreen from "../components/SafeScreen";
 import { expandirRecorrencias, formatarDataISO } from "../utils/compromissoUtils";
 
 // -------------------------------------------
@@ -288,7 +289,7 @@ const AgendaScreen: React.FC<{ route?: any }> = ({ route }) => {
   // RENDER
   // -------------------------------------------
   return (
-    <View style={styles.container}>
+    <SafeScreen style={styles.container}>
 
       {/* CALENDÁRIO */}
       <Calendar
@@ -426,7 +427,7 @@ const AgendaScreen: React.FC<{ route?: any }> = ({ route }) => {
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
 
-    </View>
+    </SafeScreen>
   );
 };
 

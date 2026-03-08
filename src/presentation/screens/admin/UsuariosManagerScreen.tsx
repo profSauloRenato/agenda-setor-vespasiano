@@ -18,6 +18,7 @@ import { useAuth } from "../../context/AuthContext";
 import { UsuariosViewModel } from "../../view_models/UsuariosViewModel";
 import { UsuarioCreateModal } from "./components/UsuarioCreateModal";
 import { UsuarioEditModal } from "./components/UsuarioEditModal";
+import SafeScreen from "../../components/SafeScreen";
 
 type UsuarioDataToCreate = Pick<IUsuario, "nome" | "email" | "localizacao_id" | "is_admin" | "pode_cadastrar_eventos">;
 
@@ -236,7 +237,7 @@ export const UsuariosManagerScreen: React.FC<UsuariosManagerScreenProps> = ({
   }
 
   return (
-    <View style={styles.container}>
+    <SafeScreen style={styles.container}>
       <View style={styles.headerContainer}>
         <Text style={styles.header}>
           Gerenciamento de Membros ({state.usuarios.length})
@@ -280,7 +281,7 @@ export const UsuariosManagerScreen: React.FC<UsuariosManagerScreenProps> = ({
           onSave={handleCreate}
         />
       )}
-    </View>
+    </SafeScreen>
   );
 };
 
