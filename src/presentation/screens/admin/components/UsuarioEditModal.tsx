@@ -16,6 +16,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ICargo } from "../../../../domain/models/ICargo";
 import { ILocalizacao } from "../../../../domain/models/ILocalizacao";
 import { IUsuario } from "../../../../domain/models/IUsuario";
@@ -45,6 +46,8 @@ export const UsuarioEditModal: React.FC<UsuarioEditModalProps> = ({
   );
   const [selectedCargosIds, setSelectedCargosIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+
+  const insets = useSafeAreaInsets();
 
   const congregacaoLocalizacoes = availableLocalizacoes.filter(
     (loc) => loc.tipo === "Congregação"
@@ -104,7 +107,9 @@ export const UsuarioEditModal: React.FC<UsuarioEditModalProps> = ({
       onRequestClose={onClose}
     >
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Editar Usuário: {usuario.nome}</Text>
+        <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+          Editar: {usuario.nome}
+        </Text>
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
           <Feather name="x" size={24} color="#0A3D62" />
         </TouchableOpacity>
@@ -195,7 +200,7 @@ export const UsuarioEditModal: React.FC<UsuarioEditModalProps> = ({
           })}
         </View>
       </ScrollView>
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom }]}>
         <TouchableOpacity
           style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
           onPress={handleSavePress}
@@ -215,7 +220,6 @@ export const UsuarioEditModal: React.FC<UsuarioEditModalProps> = ({
 const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     padding: 15,
     borderBottomWidth: 1,
@@ -223,9 +227,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   headerTitle: {
-    fontSize: 20,
+    flex: 1,
+    fontSize: 18,
     fontWeight: "700",
     color: "#0A3D62",
+    marginRight: 10,
   },
   closeButton: {
     padding: 5,
@@ -319,6 +325,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: 15,
+    paddingBottom: 0,
     borderTopWidth: 1,
     borderTopColor: "#DCE0E6",
     backgroundColor: "#FFFFFF",
