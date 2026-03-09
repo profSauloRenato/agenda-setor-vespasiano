@@ -47,6 +47,7 @@ export interface IEvento {
   responsavel_id: string | null;
   cargos_visiveis: string[];
   rsvp_habilitado: boolean;
+  abrangencia_id: string | null;
 
   // Datas
   data_inicio: string; // ISO string

@@ -35,7 +35,15 @@ export class SupabaseVersiculoService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.log("SERVICE ERROR CODE:", error.code, typeof error);
+      if (error.code === "23505") {
+        const msg = "Já existe um versículo cadastrado para esta data. Cada dia pode ter apenas um versículo.";
+        console.log("THROWING:", msg);
+        throw new Error(msg);
+      }
+      throw new Error(error.message);
+    }
     return data;
   }
 
@@ -54,7 +62,12 @@ export class SupabaseVersiculoService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      if (error.code === "23505") {
+        throw new Error("Já existe um versículo cadastrado para esta data. Cada dia pode ter apenas um versículo.");
+      }
+      throw new Error(error.message);
+    }
     return data;
   }
 

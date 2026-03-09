@@ -9,6 +9,10 @@ import {
 export interface BuscarEventosParams {
   dataInicio?: string;
   dataFim?: string;
+  // Filtro hierárquico (usado na agenda do usuário)
+  localizacaoId?: string;
+  cargoIds?: string[];
+  // Filtro simples (usado no painel admin)
   localizacaoIds?: string[];
   modeloIds?: string[];
   cargosVisiveis?: string[];

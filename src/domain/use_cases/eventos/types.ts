@@ -27,8 +27,10 @@ export type CreateEventoParams = {
   dias_antes_referencia: number | null;
   modelo_id?: string | null;
   alertas?: IEventoAlerta[];
+  abrangencia_id?: string | null;
 };
 
 export type UpdateEventoParams = CreateEventoParams & {
   id: string;
+  abrangencia_id?: string | null;
 };

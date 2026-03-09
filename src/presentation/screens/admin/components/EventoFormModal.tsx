@@ -42,6 +42,7 @@ const initialFormState = {
   modelo_id: null as string | null,
   descricao: "",
   localizacao_id: null as string | null,
+  abrangencia_id: null as string | null,
   responsavel_id: null as string | null,
   cargos_visiveis: [] as string[],
   rsvp_habilitado: false,
@@ -60,7 +61,7 @@ const initialFormState = {
 };
 
 // -------------------------------------------
-// SELETOR HIERÁRQUICO DE LOCALIZAÇÃO
+// SELETOR HIERÁRQUICO — LOCAL DO EVENTO (apenas Congregação)
 // -------------------------------------------
 const SeletorLocalizacao: React.FC<{
   localizacoes: ILocalizacao[];
@@ -88,7 +89,6 @@ const SeletorLocalizacao: React.FC<{
     [localizacoes, setorId]
   );
 
-  // Ao editar, pré-seleciona a hierarquia a partir da congregação
   useEffect(() => {
     if (localizacaoId) {
       const congregacao = localizacoes.find((l) => l.id === localizacaoId);
@@ -107,91 +107,109 @@ const SeletorLocalizacao: React.FC<{
     }
   }, [localizacaoId]);
 
-  const handleRegional = (id: string) => {
-    setRegionalId(id || null);
-    setAdministracaoId(null);
-    setSetorId(null);
-    onChange(null);
-  };
-
-  const handleAdministracao = (id: string) => {
-    setAdministracaoId(id || null);
-    setSetorId(null);
-    onChange(null);
-  };
-
-  const handleSetor = (id: string) => {
-    setSetorId(id || null);
-    onChange(null);
-  };
-
-  const handleCongregacao = (id: string) => {
-    onChange(id || null);
-  };
-
   return (
     <View style={seletorStyles.container}>
-      {/* Regional */}
       <Text style={seletorStyles.nivelLabel}>Regional</Text>
       <View style={seletorStyles.pickerBox}>
-        <Picker selectedValue={regionalId ?? ""} onValueChange={handleRegional} style={{ color: "#333" }}>
+        <Picker selectedValue={regionalId ?? ""} onValueChange={(id) => { setRegionalId(id || null); setAdministracaoId(null); setSetorId(null); onChange(null); }} style={{ color: "#333" }}>
           <Picker.Item label="Selecione a Regional..." value="" color="#999" />
-          {regionais.map((r) => (
-            <Picker.Item key={r.id} label={r.nome} value={r.id} />
-          ))}
+          {regionais.map((r) => <Picker.Item key={r.id} label={r.nome} value={r.id} />)}
         </Picker>
       </View>
 
-      {/* Administração */}
       {regionalId && (
         <>
           <Text style={seletorStyles.nivelLabel}>Administração</Text>
           <View style={seletorStyles.pickerBox}>
-            <Picker selectedValue={administracaoId ?? ""} onValueChange={handleAdministracao} style={{ color: "#333" }}>
+            <Picker selectedValue={administracaoId ?? ""} onValueChange={(id) => { setAdministracaoId(id || null); setSetorId(null); onChange(null); }} style={{ color: "#333" }}>
               <Picker.Item label="Selecione a Administração..." value="" color="#999" />
-              {administracoes.map((a) => (
-                <Picker.Item key={a.id} label={a.nome} value={a.id} />
-              ))}
+              {administracoes.map((a) => <Picker.Item key={a.id} label={a.nome} value={a.id} />)}
             </Picker>
           </View>
         </>
       )}
 
-      {/* Setor */}
       {administracaoId && (
         <>
           <Text style={seletorStyles.nivelLabel}>Setor</Text>
           <View style={seletorStyles.pickerBox}>
-            <Picker selectedValue={setorId ?? ""} onValueChange={handleSetor} style={{ color: "#333" }}>
+            <Picker selectedValue={setorId ?? ""} onValueChange={(id) => { setSetorId(id || null); onChange(null); }} style={{ color: "#333" }}>
               <Picker.Item label="Selecione o Setor..." value="" color="#999" />
-              {setores.map((s) => (
-                <Picker.Item key={s.id} label={s.nome} value={s.id} />
-              ))}
+              {setores.map((s) => <Picker.Item key={s.id} label={s.nome} value={s.id} />)}
             </Picker>
           </View>
         </>
       )}
 
-      {/* Congregação */}
       {setorId && (
         <>
           <Text style={seletorStyles.nivelLabel}>Congregação</Text>
           <View style={[seletorStyles.pickerBox, seletorStyles.pickerBoxDestaque]}>
-            <Picker selectedValue={localizacaoId ?? ""} onValueChange={handleCongregacao} style={{ color: "#333" }}>
+            <Picker selectedValue={localizacaoId ?? ""} onValueChange={(id) => onChange(id || null)} style={{ color: "#333" }}>
               <Picker.Item label="Selecione a Congregação..." value="" color="#999" />
-              {congregacoes.map((c) => (
-                <Picker.Item key={c.id} label={c.nome} value={c.id} />
-              ))}
+              {congregacoes.map((c) => <Picker.Item key={c.id} label={c.nome} value={c.id} />)}
             </Picker>
           </View>
         </>
       )}
 
-      {/* Confirmação visual */}
       {localizacaoId && (
         <View style={seletorStyles.confirmBox}>
           <Text style={seletorStyles.confirmText}>
             📍 {localizacoes.find((l) => l.id === localizacaoId)?.nome}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+};
+
+// -------------------------------------------
+// SELETOR DE ABRANGÊNCIA — qualquer nível hierárquico
+// -------------------------------------------
+const SeletorAbrangencia: React.FC<{
+  localizacoes: ILocalizacao[];
+  abrangenciaId: string | null;
+  onChange: (id: string | null) => void;
+}> = ({ localizacoes, abrangenciaId, onChange }) => {
+  const ORDEM_TIPO = ["Regional", "Administração", "Setor", "Congregação"];
+
+  const localizacoesOrdenadas = useMemo(
+    () =>
+      [...localizacoes].sort((a, b) => {
+        const diff = ORDEM_TIPO.indexOf(a.tipo) - ORDEM_TIPO.indexOf(b.tipo);
+        return diff !== 0 ? diff : a.nome.localeCompare(b.nome);
+      }),
+    [localizacoes]
+  );
+
+  const selecionada = localizacoes.find((l) => l.id === abrangenciaId);
+
+  return (
+    <View>
+      <View style={seletorStyles.pickerBox}>
+        <Picker
+          selectedValue={abrangenciaId ?? ""}
+          onValueChange={(v) => onChange(v || null)}
+          style={{ color: "#333" }}
+        >
+          <Picker.Item label="Selecione a abrangência..." value="" color="#999" />
+          {ORDEM_TIPO.map((tipo) => {
+            const itens = localizacoesOrdenadas.filter((l) => l.tipo === tipo);
+            if (itens.length === 0) return null;
+            return [
+              <Picker.Item key={`header-${tipo}`} label={`── ${tipo} ──`} value={`_${tipo}`} enabled={false} color="#AAA" />,
+              ...itens.map((l) => (
+                <Picker.Item key={l.id} label={l.nome} value={l.id} />
+              )),
+            ];
+          })}
+        </Picker>
+      </View>
+      {selecionada && (
+        <View style={[seletorStyles.confirmBox, { backgroundColor: "#FFF3E0" }]}>
+          <Text style={[seletorStyles.confirmText, { color: "#E65100" }]}>
+            📣 {selecionada.tipo}: {selecionada.nome}
           </Text>
         </View>
       )}
@@ -256,6 +274,7 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showDateFim, setShowDateFim] = useState(false);
   const [showDateRecorrenciaFim, setShowDateRecorrenciaFim] = useState(false);
+  const [showTimeFim, setShowTimeFim] = useState(false);
   const [eventosVinculados, setEventosVinculados] = useState<Array<{
     titulo: string;
     horario: Date;
@@ -264,7 +283,6 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
   }>>([]);
   const [showVinculadoTimePicker, setShowVinculadoTimePicker] = useState(false);
   const [editingVinculadoIndex, setEditingVinculadoIndex] = useState<number | null>(null);
-  const [showTimeFim, setShowTimeFim] = useState(false);
 
   const OPCOES_ALERTA = [
     { label: "1 hora antes", value: 1 },
@@ -294,6 +312,7 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
         modelo_id: eventoToEdit.modelo_id ?? null,
         descricao: eventoToEdit.descricao || "",
         localizacao_id: eventoToEdit.localizacao_id,
+        abrangencia_id: eventoToEdit.abrangencia_id ?? null,
         responsavel_id: eventoToEdit.responsavel_id,
         cargos_visiveis: eventoToEdit.cargos_visiveis,
         rsvp_habilitado: eventoToEdit.rsvp_habilitado,
@@ -329,37 +348,20 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
     }));
   };
 
-  const addAlerta = () => {
-    setForm((prev) => ({ ...prev, alertas: [...prev.alertas, { horas_antes: 24 }] }));
-  };
+  const addAlerta = () => setForm((prev) => ({ ...prev, alertas: [...prev.alertas, { horas_antes: 24 }] }));
+  const removeAlerta = (index: number) => setForm((prev) => ({ ...prev, alertas: prev.alertas.filter((_, i) => i !== index) }));
+  const updateAlerta = (index: number, horas_antes: number) =>
+    setForm((prev) => ({ ...prev, alertas: prev.alertas.map((a, i) => (i === index ? { ...a, horas_antes } : a)) }));
 
-  const removeAlerta = (index: number) => {
-    setForm((prev) => ({ ...prev, alertas: prev.alertas.filter((_, i) => i !== index) }));
-  };
-
-  const updateAlerta = (index: number, horas_antes: number) => {
-    setForm((prev) => ({
-      ...prev,
-      alertas: prev.alertas.map((a, i) => (i === index ? { ...a, horas_antes } : a)),
-    }));
-  };
-
-  const addEventoVinculado = () => {
+  const addEventoVinculado = () =>
     setEventosVinculados((prev) => [
       ...prev,
       { titulo: "", horario: new Date(form.data_inicio), dias_antes: 0, cargos_visiveis: [...form.cargos_visiveis] },
     ]);
-  };
-
-  const removeEventoVinculado = (index: number) => {
+  const removeEventoVinculado = (index: number) =>
     setEventosVinculados((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const updateEventoVinculado = (index: number, field: string, value: any) => {
-    setEventosVinculados((prev) =>
-      prev.map((ev, i) => (i === index ? { ...ev, [field]: value } : ev))
-    );
-  };
+  const updateEventoVinculado = (index: number, field: string, value: any) =>
+    setEventosVinculados((prev) => prev.map((ev, i) => (i === index ? { ...ev, [field]: value } : ev)));
 
   const handleSave = async () => {
     if (!form.modelo_id || !modeloSelecionado) {
@@ -370,95 +372,102 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
       Alert.alert("Atenção", "Selecione a congregação onde ocorrerá o evento.");
       return;
     }
+    if (!form.abrangencia_id) {
+      Alert.alert("Atenção", "Selecione a abrangência do evento.");
+      return;
+    }
     if (form.cargos_visiveis.length === 0) {
       Alert.alert("Atenção", "Selecione ao menos um cargo que pode visualizar.");
       return;
     }
 
-    const params = {
-      titulo: modeloSelecionado.nome,
-      tipo: modeloSelecionado.categoria === "evento"
-        ? "Evento Especial" as const
-        : "Reunião de Congregação" as const,
-      modelo_id: form.modelo_id,
-      descricao: form.descricao.trim() || null,
-      localizacao_id: form.localizacao_id,
-      responsavel_id: form.responsavel_id,
-      cargos_visiveis: form.cargos_visiveis,
-      rsvp_habilitado: form.rsvp_habilitado,
-      data_inicio: form.data_inicio.toISOString(),
-      data_fim: form.data_fim ? form.data_fim.toISOString() : null,
-      recorrente: form.recorrente,
-      recorrencia_tipo: form.recorrente ? form.recorrencia_tipo : null,
-      recorrencia_dia_semana: form.recorrente ? form.recorrencia_dia_semana : null,
-      recorrencia_semana_do_mes: form.recorrente ? form.recorrencia_semana_do_mes : null,
-      evento_referencia_id: null,
-      dias_antes_referencia: null,
-      recorrencia_intervalo: form.recorrente ? form.recorrencia_intervalo : null,
-      recorrencia_fim: form.recorrente && form.recorrencia_fim
-        ? form.recorrencia_fim.toISOString().split("T")[0]
-        : null,
-      recorrencia_total: form.recorrente ? form.recorrencia_total : null,
-      alertas: form.alertas,
-    };
+    try {
+      const params = {
+        titulo: modeloSelecionado.nome,
+        tipo: modeloSelecionado.categoria === "evento"
+          ? "Evento Especial" as const
+          : "Reunião de Congregação" as const,
+        modelo_id: form.modelo_id,
+        descricao: form.descricao.trim() || null,
+        localizacao_id: form.localizacao_id,
+        abrangencia_id: form.abrangencia_id,
+        responsavel_id: form.responsavel_id,
+        cargos_visiveis: form.cargos_visiveis,
+        rsvp_habilitado: form.rsvp_habilitado,
+        data_inicio: form.data_inicio.toISOString(),
+        data_fim: form.data_fim ? form.data_fim.toISOString() : null,
+        recorrente: form.recorrente,
+        recorrencia_tipo: form.recorrente ? form.recorrencia_tipo : null,
+        recorrencia_dia_semana: form.recorrente ? form.recorrencia_dia_semana : null,
+        recorrencia_semana_do_mes: form.recorrente ? form.recorrencia_semana_do_mes : null,
+        evento_referencia_id: null,
+        dias_antes_referencia: null,
+        recorrencia_intervalo: form.recorrente ? form.recorrencia_intervalo : null,
+        recorrencia_fim: form.recorrente && form.recorrencia_fim
+          ? form.recorrencia_fim.toISOString().split("T")[0]
+          : null,
+        recorrencia_total: form.recorrente ? form.recorrencia_total : null,
+        alertas: form.alertas,
+      };
 
-    let result;
-    if (isEditing && eventoToEdit) {
-      result = await updateEvento({ ...params, id: eventoToEdit.id } as UpdateEventoParams);
-    } else {
-      result = await createEvento(params as CreateEventoParams);
-    }
-
-    if (result) {
-      for (const vinculado of eventosVinculados) {
-        if (!vinculado.titulo.trim()) continue;
-        await createEvento({
-          titulo: vinculado.titulo,
-          tipo: params.tipo,
-          modelo_id: form.modelo_id,
-          descricao: null,
-          localizacao_id: form.localizacao_id,
-          responsavel_id: form.responsavel_id,
-          cargos_visiveis: vinculado.cargos_visiveis,
-          rsvp_habilitado: false,
-          data_inicio: (() => {
-            const dataBase = new Date(form.data_inicio);
-            dataBase.setDate(dataBase.getDate() - vinculado.dias_antes);
-            dataBase.setHours(vinculado.horario.getHours(), vinculado.horario.getMinutes(), 0, 0);
-            return dataBase.toISOString();
-          })(),
-          data_fim: null,
-          recorrente: true,
-          recorrencia_tipo: form.recorrencia_tipo,
-          recorrencia_dia_semana: form.recorrencia_dia_semana,
-          recorrencia_semana_do_mes: form.recorrencia_semana_do_mes,
-          recorrencia_intervalo: form.recorrencia_intervalo,
-          recorrencia_fim: form.recorrencia_fim
-            ? form.recorrencia_fim.toISOString().split("T")[0]
-            : null,
-          recorrencia_total: form.recorrencia_total,
-          evento_referencia_id: result.id,
-          dias_antes_referencia: vinculado.dias_antes,
-        });
+      let result;
+      if (isEditing && eventoToEdit) {
+        result = await updateEvento({ ...params, id: eventoToEdit.id } as UpdateEventoParams);
+      } else {
+        result = await createEvento(params as CreateEventoParams);
       }
-      onClose();
-    } else if (state.error) {
-      Alert.alert("Erro", state.error);
+
+      if (result) {
+        for (const vinculado of eventosVinculados) {
+          if (!vinculado.titulo.trim()) continue;
+          await createEvento({
+            titulo: vinculado.titulo,
+            tipo: params.tipo,
+            modelo_id: form.modelo_id!,
+            descricao: null,
+            localizacao_id: form.localizacao_id!,
+            abrangencia_id: form.abrangencia_id,
+            responsavel_id: form.responsavel_id,
+            cargos_visiveis: vinculado.cargos_visiveis,
+            rsvp_habilitado: false,
+            data_inicio: (() => {
+              const dataBase = new Date(form.data_inicio);
+              dataBase.setDate(dataBase.getDate() - vinculado.dias_antes);
+              dataBase.setHours(vinculado.horario.getHours(), vinculado.horario.getMinutes(), 0, 0);
+              return dataBase.toISOString();
+            })(),
+            data_fim: null,
+            recorrente: true,
+            recorrencia_tipo: form.recorrencia_tipo,
+            recorrencia_dia_semana: form.recorrencia_dia_semana,
+            recorrencia_semana_do_mes: form.recorrencia_semana_do_mes,
+            recorrencia_intervalo: form.recorrencia_intervalo,
+            recorrencia_fim: form.recorrencia_fim
+              ? form.recorrencia_fim.toISOString().split("T")[0]
+              : null,
+            recorrencia_total: form.recorrencia_total,
+            evento_referencia_id: result.id,
+            dias_antes_referencia: vinculado.dias_antes,
+          });
+        }
+        onClose();
+      } else {
+        Alert.alert("Erro", state.error ?? "Falha ao salvar evento.");
+      }
+    } catch (e: any) {
+      Alert.alert("Erro", e?.message ?? "Falha ao salvar evento.");
     }
   };
 
   const formatDate = (date: Date): string =>
     date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
-
   const formatTime = (date: Date): string =>
     date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
   return (
     <Modal visible={isVisible} animationType="slide" onRequestClose={onClose}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>
-          {isEditing ? "Editar Evento" : "Criar Evento"}
-        </Text>
+        <Text style={styles.headerTitle}>{isEditing ? "Editar Evento" : "Criar Evento"}</Text>
         <TouchableOpacity onPress={onClose}>
           <Text style={styles.headerClose}>✕</Text>
         </TouchableOpacity>
@@ -466,7 +475,7 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
 
       <ScrollView contentContainerStyle={styles.content}>
 
-        {/* MODELO DO EVENTO */}
+        {/* MODELO */}
         <Text style={styles.sectionTitle}>Selecione a Reunião ou Evento *</Text>
         {isLoadingModelos ? (
           <ActivityIndicator color="#17A2B8" style={{ marginVertical: 10 }} />
@@ -479,18 +488,10 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
               style={{ color: "#333" }}
             >
               <Picker.Item label="Selecione o modelo..." value="" color="#999" />
-              {modelosEventos.length > 0 && (
-                <Picker.Item label="── Eventos ──" value="_eventos" enabled={false} color="#AAA" />
-              )}
-              {modelosEventos.map((m) => (
-                <Picker.Item key={m.id} label={m.nome} value={m.id} />
-              ))}
-              {modelosReunioes.length > 0 && (
-                <Picker.Item label="── Reuniões ──" value="_reunioes" enabled={false} color="#AAA" />
-              )}
-              {modelosReunioes.map((m) => (
-                <Picker.Item key={m.id} label={m.nome} value={m.id} />
-              ))}
+              {modelosEventos.length > 0 && <Picker.Item label="── Eventos ──" value="_eventos" enabled={false} color="#AAA" />}
+              {modelosEventos.map((m) => <Picker.Item key={m.id} label={m.nome} value={m.id} />)}
+              {modelosReunioes.length > 0 && <Picker.Item label="── Reuniões ──" value="_reunioes" enabled={false} color="#AAA" />}
+              {modelosReunioes.map((m) => <Picker.Item key={m.id} label={m.nome} value={m.id} />)}
             </Picker>
           </View>
         )}
@@ -506,15 +507,24 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
           numberOfLines={3}
         />
 
-        {/* LOCALIZAÇÃO HIERÁRQUICA */}
-        <Text style={styles.sectionTitle}>Localização *</Text>
-        <Text style={styles.infoText}>
-          Selecione a congregação onde o evento ocorrerá.
-        </Text>
+        {/* LOCAL DO EVENTO */}
+        <Text style={styles.sectionTitle}>Local do Evento *</Text>
+        <Text style={styles.infoText}>Selecione a congregação onde o evento ocorrerá.</Text>
         <SeletorLocalizacao
           localizacoes={localizacoesDisponiveis}
           localizacaoId={form.localizacao_id}
           onChange={(id) => setForm((p) => ({ ...p, localizacao_id: id }))}
+        />
+
+        {/* ABRANGÊNCIA */}
+        <Text style={styles.sectionTitle}>Abrangência *</Text>
+        <Text style={styles.infoText}>
+          Quem poderá ver este evento? Selecione o nível hierárquico: uma congregação específica, um setor, uma administração ou toda a regional.
+        </Text>
+        <SeletorAbrangencia
+          localizacoes={localizacoesDisponiveis}
+          abrangenciaId={form.abrangencia_id}
+          onChange={(id) => setForm((p) => ({ ...p, abrangencia_id: id }))}
         />
 
         {/* DATA INÍCIO */}
@@ -530,100 +540,38 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
         </View>
 
         {showDateInicio && (
-          <DateTimePicker
-            value={form.data_inicio}
-            mode="date"
-            display="default"
-            onChange={(_, date) => {
-              setShowDateInicio(false);
-              if (date) {
-                const updated = new Date(form.data_inicio);
-                updated.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
-                setForm((p) => ({ ...p, data_inicio: updated }));
-              }
-            }}
-          />
+          <DateTimePicker value={form.data_inicio} mode="date" display="default"
+            onChange={(_, date) => { setShowDateInicio(false); if (date) { const u = new Date(form.data_inicio); u.setFullYear(date.getFullYear(), date.getMonth(), date.getDate()); setForm((p) => ({ ...p, data_inicio: u })); } }} />
         )}
-
         {showTimePicker && (
-          <DateTimePicker
-            value={form.data_inicio}
-            mode="time"
-            display="default"
-            onChange={(_, date) => {
-              setShowTimePicker(false);
-              if (date) {
-                const updated = new Date(form.data_inicio);
-                updated.setHours(date.getHours(), date.getMinutes());
-                setForm((p) => ({ ...p, data_inicio: updated }));
-              }
-            }}
-          />
+          <DateTimePicker value={form.data_inicio} mode="time" display="default"
+            onChange={(_, date) => { setShowTimePicker(false); if (date) { const u = new Date(form.data_inicio); u.setHours(date.getHours(), date.getMinutes()); setForm((p) => ({ ...p, data_inicio: u })); } }} />
         )}
 
-        {/* DATA/HORA FIM */}
+        {/* DATA FIM */}
         <View style={styles.switchRowFim}>
           <Text style={styles.label}>Definir horário de término</Text>
-          <Switch
-            value={form.data_fim !== null}
-            onValueChange={(v) =>
-              setForm((p) => ({
-                ...p,
-                data_fim: v ? new Date(p.data_inicio) : null,
-              }))
-            }
-            trackColor={{ false: "#767577", true: "#17A2B8" }}
-            thumbColor="#fff"
-          />
+          <Switch value={form.data_fim !== null}
+            onValueChange={(v) => setForm((p) => ({ ...p, data_fim: v ? new Date(p.data_inicio) : null }))}
+            trackColor={{ false: "#767577", true: "#17A2B8" }} thumbColor="#fff" />
         </View>
-
         {form.data_fim !== null && (
           <View style={styles.dateRow}>
-            <TouchableOpacity
-              style={styles.dateButton}
-              onPress={() => setShowDateFim(true)}
-            >
+            <TouchableOpacity style={styles.dateButton} onPress={() => setShowDateFim(true)}>
               <Text style={styles.dateButtonText}>📅 {formatDate(form.data_fim)}</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.dateButton}
-              onPress={() => setShowTimeFim(true)}
-            >
+            <TouchableOpacity style={styles.dateButton} onPress={() => setShowTimeFim(true)}>
               <Text style={styles.dateButtonText}>🕐 {formatTime(form.data_fim)}</Text>
             </TouchableOpacity>
           </View>
         )}
-
         {showDateFim && (
-          <DateTimePicker
-            value={form.data_fim || new Date()}
-            mode="date"
-            display="default"
-            onChange={(_, date) => {
-              setShowDateFim(false);
-              if (date) {
-                const updated = new Date(form.data_fim!);
-                updated.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
-                setForm((p) => ({ ...p, data_fim: updated }));
-              }
-            }}
-          />
+          <DateTimePicker value={form.data_fim || new Date()} mode="date" display="default"
+            onChange={(_, date) => { setShowDateFim(false); if (date) { const u = new Date(form.data_fim!); u.setFullYear(date.getFullYear(), date.getMonth(), date.getDate()); setForm((p) => ({ ...p, data_fim: u })); } }} />
         )}
-
         {showTimeFim && (
-          <DateTimePicker
-            value={form.data_fim || new Date()}
-            mode="time"
-            display="default"
-            onChange={(_, date) => {
-              setShowTimeFim(false);
-              if (date) {
-                const updated = new Date(form.data_fim!);
-                updated.setHours(date.getHours(), date.getMinutes());
-                setForm((p) => ({ ...p, data_fim: updated }));
-              }
-            }}
-          />
+          <DateTimePicker value={form.data_fim || new Date()} mode="time" display="default"
+            onChange={(_, date) => { setShowTimeFim(false); if (date) { const u = new Date(form.data_fim!); u.setHours(date.getHours(), date.getMinutes()); setForm((p) => ({ ...p, data_fim: u })); } }} />
         )}
 
         {/* CARGOS VISÍVEIS */}
@@ -632,14 +580,10 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
           {cargosDisponiveis.map((cargo) => {
             const selected = form.cargos_visiveis.includes(cargo.id);
             return (
-              <TouchableOpacity
-                key={cargo.id}
+              <TouchableOpacity key={cargo.id}
                 style={[styles.cargoChip, selected && styles.cargoChipSelected]}
-                onPress={() => toggleCargo(cargo.id)}
-              >
-                <Text style={[styles.cargoChipText, selected && styles.cargoChipTextSelected]}>
-                  {cargo.nome}
-                </Text>
+                onPress={() => toggleCargo(cargo.id)}>
+                <Text style={[styles.cargoChipText, selected && styles.cargoChipTextSelected]}>{cargo.nome}</Text>
               </TouchableOpacity>
             );
           })}
@@ -648,23 +592,18 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
         {/* RECORRÊNCIA */}
         <View style={styles.switchRow}>
           <Text style={styles.label}>Evento Recorrente</Text>
-          <Switch
-            value={form.recorrente}
+          <Switch value={form.recorrente}
             onValueChange={(v) => setForm((p) => ({ ...p, recorrente: v }))}
-            trackColor={{ false: "#767577", true: "#0A3D62" }}
-          />
+            trackColor={{ false: "#767577", true: "#0A3D62" }} />
         </View>
 
         {form.recorrente && (
           <View style={styles.recorrenciaBox}>
-
             <Text style={styles.label}>Frequência</Text>
             <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={form.recorrencia_tipo ?? ""}
+              <Picker selectedValue={form.recorrencia_tipo ?? ""}
                 onValueChange={(v) => setForm((p) => ({ ...p, recorrencia_tipo: (v || null) as RecorrenciaTipo | null }))}
-                style={{ color: "#333" }}
-              >
+                style={{ color: "#333" }}>
                 <Picker.Item label="Selecione..." value="" color="#999" />
                 <Picker.Item label="Semanal (toda semana)" value="semanal" />
                 <Picker.Item label="Mensal (todo mês)" value="mensal" />
@@ -677,13 +616,10 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
             {form.recorrencia_tipo === "personalizado" && (
               <>
                 <Text style={styles.label}>Repetir a cada quantos meses?</Text>
-                <TextInput
-                  style={styles.input}
+                <TextInput style={styles.input}
                   value={form.recorrencia_intervalo ? String(form.recorrencia_intervalo) : ""}
                   onChangeText={(v) => setForm((p) => ({ ...p, recorrencia_intervalo: v ? parseInt(v) : null }))}
-                  placeholder="Ex: 4"
-                  keyboardType="numeric"
-                />
+                  placeholder="Ex: 4" keyboardType="numeric" />
               </>
             )}
 
@@ -691,15 +627,11 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
               <>
                 <Text style={styles.label}>Dia da semana</Text>
                 <View style={styles.pickerContainer}>
-                  <Picker
-                    selectedValue={form.recorrencia_dia_semana ?? ""}
+                  <Picker selectedValue={form.recorrencia_dia_semana ?? ""}
                     onValueChange={(v) => setForm((p) => ({ ...p, recorrencia_dia_semana: v === "" ? null : Number(v) }))}
-                    style={{ color: "#333" }}
-                  >
+                    style={{ color: "#333" }}>
                     <Picker.Item label="Selecione..." value="" color="#999" />
-                    {DIAS_SEMANA.map((dia) => (
-                      <Picker.Item key={dia.value} label={dia.label} value={dia.value} />
-                    ))}
+                    {DIAS_SEMANA.map((dia) => <Picker.Item key={dia.value} label={dia.label} value={dia.value} />)}
                   </Picker>
                 </View>
               </>
@@ -709,29 +641,20 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
               <>
                 <Text style={styles.label}>Qual semana do mês?</Text>
                 <View style={styles.pickerContainer}>
-                  <Picker
-                    selectedValue={form.recorrencia_semana_do_mes ?? ""}
+                  <Picker selectedValue={form.recorrencia_semana_do_mes ?? ""}
                     onValueChange={(v) => setForm((p) => ({ ...p, recorrencia_semana_do_mes: v === "" ? null : Number(v) }))}
-                    style={{ color: "#333" }}
-                  >
+                    style={{ color: "#333" }}>
                     <Picker.Item label="Selecione..." value="" color="#999" />
-                    {SEMANAS_DO_MES.map((s) => (
-                      <Picker.Item key={s.value} label={s.label} value={s.value} />
-                    ))}
+                    {SEMANAS_DO_MES.map((s) => <Picker.Item key={s.value} label={s.label} value={s.value} />)}
                   </Picker>
                 </View>
-
                 <Text style={styles.label}>Dia da semana</Text>
                 <View style={styles.pickerContainer}>
-                  <Picker
-                    selectedValue={form.recorrencia_dia_semana ?? ""}
+                  <Picker selectedValue={form.recorrencia_dia_semana ?? ""}
                     onValueChange={(v) => setForm((p) => ({ ...p, recorrencia_dia_semana: v === "" ? null : Number(v) }))}
-                    style={{ color: "#333" }}
-                  >
+                    style={{ color: "#333" }}>
                     <Picker.Item label="Selecione..." value="" color="#999" />
-                    {DIAS_SEMANA.map((dia) => (
-                      <Picker.Item key={dia.value} label={dia.label} value={dia.value} />
-                    ))}
+                    {DIAS_SEMANA.map((dia) => <Picker.Item key={dia.value} label={dia.label} value={dia.value} />)}
                   </Picker>
                 </View>
               </>
@@ -748,42 +671,20 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
                 <Text style={styles.clearText}>Remover data</Text>
               </TouchableOpacity>
             )}
-
             {showDateRecorrenciaFim && (
-              <DateTimePicker
-                value={form.recorrencia_fim || new Date()}
-                mode="date"
-                display="default"
-                onChange={(_, date) => {
-                  setShowDateRecorrenciaFim(false);
-                  if (date) setForm((p) => ({ ...p, recorrencia_fim: date }));
-                }}
-              />
+              <DateTimePicker value={form.recorrencia_fim || new Date()} mode="date" display="default"
+                onChange={(_, date) => { setShowDateRecorrenciaFim(false); if (date) setForm((p) => ({ ...p, recorrencia_fim: date })); }} />
             )}
-
             {showVinculadoTimePicker && editingVinculadoIndex !== null && (
-              <DateTimePicker
-                value={eventosVinculados[editingVinculadoIndex]?.horario || new Date()}
-                mode="time"
-                display="default"
-                onChange={(_, date) => {
-                  setShowVinculadoTimePicker(false);
-                  if (date && editingVinculadoIndex !== null) {
-                    updateEventoVinculado(editingVinculadoIndex, "horario", date);
-                  }
-                  setEditingVinculadoIndex(null);
-                }}
-              />
+              <DateTimePicker value={eventosVinculados[editingVinculadoIndex]?.horario || new Date()} mode="time" display="default"
+                onChange={(_, date) => { setShowVinculadoTimePicker(false); if (date && editingVinculadoIndex !== null) updateEventoVinculado(editingVinculadoIndex, "horario", date); setEditingVinculadoIndex(null); }} />
             )}
 
             <Text style={styles.label}>Ou repetir quantas vezes</Text>
-            <TextInput
-              style={styles.input}
+            <TextInput style={styles.input}
               value={form.recorrencia_total ? String(form.recorrencia_total) : ""}
               onChangeText={(v) => setForm((p) => ({ ...p, recorrencia_total: v ? parseInt(v) : null }))}
-              placeholder="Ex: 12"
-              keyboardType="numeric"
-            />
+              placeholder="Ex: 12" keyboardType="numeric" />
           </View>
         )}
 
@@ -791,9 +692,7 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
         {form.recorrente && (
           <View>
             <Text style={styles.sectionTitle}>Eventos Vinculados</Text>
-            <Text style={styles.infoText}>
-              Eventos que ocorrem antes deste (ex: véspera, antevéspera)
-            </Text>
+            <Text style={styles.infoText}>Eventos que ocorrem antes deste (ex: véspera, antevéspera)</Text>
             {eventosVinculados.map((vinculado, index) => (
               <View key={index} style={styles.vinculadoBox}>
                 <View style={styles.vinculadoHeader}>
@@ -803,31 +702,16 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.label}>Título:</Text>
-                <TextInput
-                  style={styles.input}
-                  value={vinculado.titulo}
+                <TextInput style={styles.input} value={vinculado.titulo}
                   onChangeText={(v) => updateEventoVinculado(index, "titulo", v)}
-                  placeholder="Ex: Reunião de véspera"
-                />
+                  placeholder="Ex: Reunião de véspera" />
                 <Text style={styles.label}>Dias antes do evento principal:</Text>
-                <TextInput
-                  style={styles.input}
+                <TextInput style={styles.input}
                   value={vinculado.dias_antes === 0 ? "" : String(vinculado.dias_antes)}
-                  onChangeText={(v) => {
-                    const num = v.replace(/[^0-9]/g, "");
-                    updateEventoVinculado(index, "dias_antes", num === "" ? 0 : parseInt(num));
-                  }}
-                  keyboardType="numeric"
-                  placeholder="Ex: 1 (véspera)"
-                />
+                  onChangeText={(v) => { const num = v.replace(/[^0-9]/g, ""); updateEventoVinculado(index, "dias_antes", num === "" ? 0 : parseInt(num)); }}
+                  keyboardType="numeric" placeholder="Ex: 1 (véspera)" />
                 <Text style={styles.label}>Horário:</Text>
-                <TouchableOpacity
-                  style={styles.dateButton}
-                  onPress={() => {
-                    setEditingVinculadoIndex(index);
-                    setShowVinculadoTimePicker(true);
-                  }}
-                >
+                <TouchableOpacity style={styles.dateButton} onPress={() => { setEditingVinculadoIndex(index); setShowVinculadoTimePicker(true); }}>
                   <Text style={styles.dateButtonText}>
                     🕐 {vinculado.horario.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                   </Text>
@@ -837,19 +721,10 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
                   {cargosDisponiveis.map((cargo) => {
                     const selected = vinculado.cargos_visiveis.includes(cargo.id);
                     return (
-                      <TouchableOpacity
-                        key={cargo.id}
+                      <TouchableOpacity key={cargo.id}
                         style={[styles.cargoChip, selected && styles.cargoChipSelected]}
-                        onPress={() => {
-                          const novos = selected
-                            ? vinculado.cargos_visiveis.filter((id) => id !== cargo.id)
-                            : [...vinculado.cargos_visiveis, cargo.id];
-                          updateEventoVinculado(index, "cargos_visiveis", novos);
-                        }}
-                      >
-                        <Text style={[styles.cargoChipText, selected && styles.cargoChipTextSelected]}>
-                          {cargo.nome}
-                        </Text>
+                        onPress={() => { const novos = selected ? vinculado.cargos_visiveis.filter((id) => id !== cargo.id) : [...vinculado.cargos_visiveis, cargo.id]; updateEventoVinculado(index, "cargos_visiveis", novos); }}>
+                        <Text style={[styles.cargoChipText, selected && styles.cargoChipTextSelected]}>{cargo.nome}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -864,9 +739,7 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
 
         {/* ALERTAS PUSH */}
         <Text style={styles.sectionTitle}>Alertas de Notificação Push</Text>
-        <Text style={styles.infoText}>
-          Envie notificações automáticas antes do evento para os cargos visíveis.
-        </Text>
+        <Text style={styles.infoText}>Envie notificações automáticas antes do evento para os cargos visíveis.</Text>
         {form.alertas.map((alerta, index) => (
           <View key={index} style={styles.vinculadoBox}>
             <View style={styles.vinculadoHeader}>
@@ -877,14 +750,8 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
             </View>
             <Text style={styles.label}>Quando enviar:</Text>
             <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={alerta.horas_antes}
-                onValueChange={(v) => updateAlerta(index, Number(v))}
-                style={{ color: "#333" }}
-              >
-                {OPCOES_ALERTA.map((op) => (
-                  <Picker.Item key={op.value} label={op.label} value={op.value} />
-                ))}
+              <Picker selectedValue={alerta.horas_antes} onValueChange={(v) => updateAlerta(index, Number(v))} style={{ color: "#333" }}>
+                {OPCOES_ALERTA.map((op) => <Picker.Item key={op.value} label={op.label} value={op.value} />)}
               </Picker>
             </View>
           </View>
@@ -903,15 +770,10 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
         <TouchableOpacity
           style={[styles.saveButton, state.isSubmitting && styles.saveButtonDisabled]}
           onPress={handleSave}
-          disabled={state.isSubmitting}
-        >
-          {state.isSubmitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.saveButtonText}>
-              {isEditing ? "Salvar Alterações" : "Criar Evento"}
-            </Text>
-          )}
+          disabled={state.isSubmitting}>
+          {state.isSubmitting
+            ? <ActivityIndicator color="#fff" />
+            : <Text style={styles.saveButtonText}>{isEditing ? "Salvar Alterações" : "Criar Evento"}</Text>}
         </TouchableOpacity>
       </View>
     </Modal>
@@ -919,152 +781,38 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
 };
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#DCE0E6",
-    backgroundColor: "#0A3D62",
-  },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 15, borderBottomWidth: 1, borderBottomColor: "#DCE0E6", backgroundColor: "#0A3D62" },
   headerTitle: { fontSize: 20, fontWeight: "700", color: "#fff" },
   headerClose: { fontSize: 22, color: "#fff", padding: 5 },
-  content: {
-    padding: 20,
-    backgroundColor: "#F0F4F8",
-    paddingBottom: 40,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#0A3D62",
-    marginTop: 20,
-    marginBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#DCE0E6",
-    paddingBottom: 5,
-  },
-  label: {
-    fontSize: 14,
-    color: "#333",
-    marginBottom: 5,
-    marginTop: 12,
-    fontWeight: "500",
-  },
-  input: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#DCE0E6",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 15,
-    color: "#333",
-  },
+  content: { padding: 20, backgroundColor: "#F0F4F8", paddingBottom: 40 },
+  sectionTitle: { fontSize: 16, fontWeight: "700", color: "#0A3D62", marginTop: 20, marginBottom: 10, borderBottomWidth: 1, borderBottomColor: "#DCE0E6", paddingBottom: 5 },
+  label: { fontSize: 14, color: "#333", marginBottom: 5, marginTop: 12, fontWeight: "500" },
+  input: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#DCE0E6", borderRadius: 8, padding: 12, fontSize: 15, color: "#333" },
   textArea: { height: 80, textAlignVertical: "top" },
-  pickerContainer: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#DCE0E6",
-    borderRadius: 8,
-    overflow: "hidden",
-  },
+  pickerContainer: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#DCE0E6", borderRadius: 8, overflow: "hidden" },
   dateRow: { flexDirection: "row", gap: 10 },
-  dateButton: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#DCE0E6",
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 5,
-    flex: 1,
-  },
+  dateButton: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#DCE0E6", borderRadius: 8, padding: 12, marginTop: 5, flex: 1 },
   dateButtonText: { fontSize: 14, color: "#333", textAlign: "center" },
   clearText: { color: "#DC3545", fontSize: 12, marginTop: 4, textAlign: "right" },
   cargosContainer: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  cargoChip: {
-    borderWidth: 1,
-    borderColor: "#0A3D62",
-    borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    backgroundColor: "#fff",
-  },
+  cargoChip: { borderWidth: 1, borderColor: "#0A3D62", borderRadius: 20, paddingVertical: 6, paddingHorizontal: 14, backgroundColor: "#fff" },
   cargoChipSelected: { backgroundColor: "#0A3D62" },
   cargoChipText: { color: "#0A3D62", fontSize: 13 },
   cargoChipTextSelected: { color: "#fff" },
-  switchRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 15,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#DCE0E6",
-  },
-  recorrenciaBox: {
-    backgroundColor: "#E8F4F8",
-    borderRadius: 8,
-    padding: 15,
-    marginTop: 10,
-  },
-  footer: {
-    flexDirection: "row",
-    padding: 15,
-    borderTopWidth: 1,
-    borderTopColor: "#DCE0E6",
-    backgroundColor: "#fff",
-    gap: 10,
-  },
-  saveButton: {
-    flex: 1,
-    backgroundColor: "#0A3D62",
-    borderRadius: 8,
-    padding: 15,
-    alignItems: "center",
-  },
+  switchRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 15, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: "#DCE0E6" },
+  recorrenciaBox: { backgroundColor: "#E8F4F8", borderRadius: 8, padding: 15, marginTop: 10 },
+  footer: { flexDirection: "row", padding: 15, borderTopWidth: 1, borderTopColor: "#DCE0E6", backgroundColor: "#fff", gap: 10 },
+  saveButton: { flex: 1, backgroundColor: "#0A3D62", borderRadius: 8, padding: 15, alignItems: "center" },
   saveButtonDisabled: { backgroundColor: "#A0B4C8" },
   saveButtonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: "#6C757D",
-    borderRadius: 8,
-    padding: 15,
-    alignItems: "center",
-  },
+  cancelButton: { flex: 1, backgroundColor: "#6C757D", borderRadius: 8, padding: 15, alignItems: "center" },
   cancelButtonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
   infoText: { fontSize: 12, color: "#6C757D", marginBottom: 10 },
-  vinculadoBox: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#DCE0E6",
-  },
-  vinculadoHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 5,
-  },
+  vinculadoBox: { backgroundColor: "#fff", borderRadius: 8, padding: 15, marginBottom: 10, borderWidth: 1, borderColor: "#DCE0E6" },
+  vinculadoHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 5 },
   vinculadoTitle: { fontSize: 15, fontWeight: "700", color: "#0A3D62" },
   removeText: { color: "#DC3545", fontSize: 13 },
-  addVinculadoButton: {
-    borderWidth: 1,
-    borderColor: "#17A2B8",
-    borderRadius: 8,
-    borderStyle: "dashed",
-    padding: 12,
-    alignItems: "center",
-    marginTop: 5,
-  },
+  addVinculadoButton: { borderWidth: 1, borderColor: "#17A2B8", borderRadius: 8, borderStyle: "dashed", padding: 12, alignItems: "center", marginTop: 5 },
   addVinculadoButtonText: { color: "#17A2B8", fontSize: 14, fontWeight: "600" },
-  switchRowFim: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 12,
-    marginBottom: 6,
-  },
+  switchRowFim: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 12, marginBottom: 6 },
 });

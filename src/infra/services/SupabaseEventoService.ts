@@ -1,3 +1,5 @@
+// src/infra/services/SupabaseEventoService.ts
+
 import { SupabaseClient } from "@supabase/supabase-js";
 import { IEvento, IEventoAlerta } from "../../domain/models/IEvento";
 import { IEventoService } from "../../domain/services/IEventoService";
@@ -19,6 +21,7 @@ export class SupabaseEventoService implements IEventoService {
       tipo: row.tipo,
       descricao: row.descricao ?? null,
       localizacao_id: row.localizacao_id ?? null,
+      abrangencia_id: row.abrangencia_id ?? null,
       responsavel_id: row.responsavel_id ?? null,
       cargos_visiveis: row.cargos_visiveis ?? [],
       rsvp_habilitado: row.rsvp_habilitado ?? false,
@@ -36,11 +39,9 @@ export class SupabaseEventoService implements IEventoService {
       criado_por: row.criado_por ?? null,
       criado_em: row.criado_em,
       atualizado_em: row.atualizado_em,
-      // Modelo
       modelo_id: row.modelo_id ?? null,
       nome_modelo: row.evento_modelo?.nome ?? null,
       categoria_modelo: row.evento_modelo?.categoria ?? null,
-      // Localização
       nome_localizacao: row.localizacao?.nome ?? null,
       nome_responsavel: row.responsavel?.nome ?? null,
       endereco_rua: row.localizacao?.endereco_rua ?? null,
@@ -70,10 +71,7 @@ export class SupabaseEventoService implements IEventoService {
     evento_alerta (id, evento_id, horas_antes, enviado, enviado_em)
   `;
 
-  async getAllEventos(
-    startDate?: string,
-    endDate?: string,
-  ): Promise<IEvento[]> {
+  async getAllEventos(startDate?: string, endDate?: string): Promise<IEvento[]> {
     let query = this.supabase
       .from(this.DB_TABLE)
       .select(this.SELECT_QUERY)
@@ -101,11 +99,47 @@ export class SupabaseEventoService implements IEventoService {
   async buscarEventos(params: {
     dataInicio?: string;
     dataFim?: string;
-    localizacaoIds?: string[];
+    localizacaoId?: string;       // ID da localização do usuário (para hierarquia)
+    localizacaoIds?: string[];     // fallback para compatibilidade
+    cargoIds?: string[];           // cargos do usuário (para filtro de visibilidade)
     modeloIds?: string[];
     cargosVisiveis?: string[];
     categoriaModelo?: string;
   }): Promise<IEvento[]> {
+
+    // Se temos localizacaoId e cargoIds, usa a RPC com filtro hierárquico
+    if (params.localizacaoId && params.cargoIds && params.cargoIds.length > 0) {
+      const { data, error } = await this.supabase.rpc("get_eventos_para_usuario", {
+        p_localizacao_id: params.localizacaoId,
+        p_cargo_ids: params.cargoIds,
+        p_data_inicio: params.dataInicio ?? new Date(0).toISOString(),
+        p_data_fim: params.dataFim ?? new Date("2100-01-01").toISOString(),
+      });
+
+      if (error) throw new Error(`Falha ao buscar eventos: ${error.message}`);
+
+      // Busca detalhes completos dos IDs retornados
+      const ids = (data ?? []).map((e: any) => e.id);
+      if (ids.length === 0) return [];
+
+      const { data: detalhes, error: errDetalhes } = await this.supabase
+        .from(this.DB_TABLE)
+        .select(this.SELECT_QUERY)
+        .in("id", ids)
+        .order("data_inicio", { ascending: true });
+
+      if (errDetalhes) throw new Error(`Falha ao buscar detalhes: ${errDetalhes.message}`);
+
+      let eventos = (detalhes ?? []).map(this.mapToIEvento.bind(this));
+
+      if (params.categoriaModelo) {
+        eventos = eventos.filter((e) => e.categoria_modelo === params.categoriaModelo);
+      }
+
+      return eventos;
+    }
+
+    // Fallback: filtro simples sem hierarquia (usado no painel admin)
     let query = this.supabase
       .from(this.DB_TABLE)
       .select(this.SELECT_QUERY)
@@ -123,7 +157,6 @@ export class SupabaseEventoService implements IEventoService {
     const { data, error } = await query;
     if (error) throw new Error(`Falha ao buscar eventos: ${error.message}`);
 
-    // Filtro por categoria do modelo (feito em memória pois é join)
     let eventos = (data ?? []).map(this.mapToIEvento.bind(this));
     if (params.categoriaModelo) {
       eventos = eventos.filter((e) => e.categoria_modelo === params.categoriaModelo);
@@ -132,10 +165,7 @@ export class SupabaseEventoService implements IEventoService {
     return eventos;
   }
 
-  async createEvento(
-    data: CreateEventoParams,
-    criadoPorId: string,
-  ): Promise<IEvento> {
+  async createEvento(data: CreateEventoParams, criadoPorId: string): Promise<IEvento> {
     const { data: created, error } = await this.supabase
       .from(this.DB_TABLE)
       .insert({
@@ -143,6 +173,7 @@ export class SupabaseEventoService implements IEventoService {
         tipo: data.tipo,
         descricao: data.descricao,
         localizacao_id: data.localizacao_id,
+        abrangencia_id: data.abrangencia_id ?? null,
         responsavel_id: data.responsavel_id,
         cargos_visiveis: data.cargos_visiveis,
         rsvp_habilitado: data.rsvp_habilitado,
@@ -180,6 +211,7 @@ export class SupabaseEventoService implements IEventoService {
         tipo: data.tipo,
         descricao: data.descricao,
         localizacao_id: data.localizacao_id,
+        abrangencia_id: data.abrangencia_id ?? null,
         responsavel_id: data.responsavel_id,
         cargos_visiveis: data.cargos_visiveis,
         rsvp_habilitado: data.rsvp_habilitado,
@@ -225,10 +257,7 @@ export class SupabaseEventoService implements IEventoService {
     if (error) throw new Error(`Falha ao deletar evento: ${error.message}`);
   }
 
-  private async saveAlertas(
-    eventoId: string,
-    alertas: IEventoAlerta[],
-  ): Promise<void> {
+  private async saveAlertas(eventoId: string, alertas: IEventoAlerta[]): Promise<void> {
     const rows = alertas.map((a) => ({
       evento_id: eventoId,
       horas_antes: a.horas_antes,

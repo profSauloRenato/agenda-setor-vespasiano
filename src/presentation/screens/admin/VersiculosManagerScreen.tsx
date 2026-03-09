@@ -133,7 +133,9 @@ const VersiculosManagerScreen: React.FC = () => {
     if (!user) return;
     setIsSubmittingV(true);
     try {
-      const dataISO = vData.toISOString().split("T")[0];
+      const d = vData;
+      const dataISO = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
       if (versiculoToEdit) {
         await versiculoService.updateVersiculo(versiculoToEdit.id, {
           texto: vTexto,
@@ -149,6 +151,7 @@ const VersiculosManagerScreen: React.FC = () => {
       setIsFormVVisible(false);
       loadVersiculos();
     } catch (e: any) {
+      console.log("ERRO VERSICULO:", JSON.stringify(e));
       Alert.alert("Erro", e?.message ?? "Falha ao salvar versículo.");
     } finally {
       setIsSubmittingV(false);
