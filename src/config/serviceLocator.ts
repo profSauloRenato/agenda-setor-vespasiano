@@ -255,6 +255,7 @@ const usuariosViewModel: UsuariosViewModel = new UsuariosViewModel(
   createUsuario,
   updateUsuario,
   deleteUsuario,
+  usuarioService
 );
 
 /**

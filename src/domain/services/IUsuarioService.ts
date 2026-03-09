@@ -35,6 +35,8 @@ export interface IUsuarioService {
    */
   updateCargos(userId: string, novosCargosIds: string[]): Promise<void>;
 
+  updateSenha(userId: string, novaSenha: string): Promise<void>;
+
   /**
    * Deleta um usuário do sistema.
    * @param executor - O admin que está executando a operação.

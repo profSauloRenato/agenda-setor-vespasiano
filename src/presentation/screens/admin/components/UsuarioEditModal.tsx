@@ -26,8 +26,12 @@ interface UsuarioEditModalProps {
   onClose: () => void;
   usuario: IUsuario;
   availableCargos: ICargo[];
-  availableLocalizacoes: ILocalizacao[]; // Lista de todas as localizações disponíveis
-  onSave: (updatedUsuario: IUsuario, novosCargosIds: string[]) => Promise<void>;
+  availableLocalizacoes: ILocalizacao[];
+  onSave: (
+    updatedUsuario: IUsuario,
+    novosCargosIds: string[],
+    novaSenha?: string,
+  ) => Promise<void>;
 }
 
 export const UsuarioEditModal: React.FC<UsuarioEditModalProps> = ({
@@ -42,42 +46,46 @@ export const UsuarioEditModal: React.FC<UsuarioEditModalProps> = ({
   const [email, setEmail] = useState(usuario.email);
   const [isAdmin, setIsAdmin] = useState(usuario.is_admin);
   const [localizacaoId, setLocalizacaoId] = useState<string | null>(
-    usuario.localizacao_id || null
+    usuario.localizacao_id || null,
   );
   const [selectedCargosIds, setSelectedCargosIds] = useState<string[]>([]);
+  const [novaSenha, setNovaSenha] = useState("");
+  const [senhaVisivel, setSenhaVisivel] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const insets = useSafeAreaInsets();
 
   const congregacaoLocalizacoes = availableLocalizacoes.filter(
-    (loc) => loc.tipo === "Congregação"
+    (loc) => loc.tipo === "Congregação",
   );
+
   useEffect(() => {
     if (usuario) {
       setNome(usuario.nome);
       setEmail(usuario.email);
       setIsAdmin(usuario.is_admin);
       setLocalizacaoId(usuario.localizacao_id || null);
-      const currentIds = (usuario.cargos || []).map((c) => c.id);
-      setSelectedCargosIds(currentIds);
+      setSelectedCargosIds((usuario.cargos || []).map((c) => c.id));
+      setNovaSenha("");
+      setSenhaVisivel(false);
     }
   }, [usuario]);
+
   const toggleCargoSelection = (cargoId: string) => {
-    setSelectedCargosIds((prevIds) => {
-      if (prevIds.includes(cargoId)) {
-        return prevIds.filter((id) => id !== cargoId);
-      } else {
-        return [...prevIds, cargoId];
-      }
-    });
+    setSelectedCargosIds((prev) =>
+      prev.includes(cargoId)
+        ? prev.filter((id) => id !== cargoId)
+        : [...prev, cargoId],
+    );
   };
+
   const handleSavePress = async () => {
-    if (!nome) {
+    if (!nome.trim()) {
       Alert.alert("Erro", "O nome do usuário não pode ser vazio.");
       return;
     }
-    if (!email) {
-      Alert.alert("Erro", "O email do usuário não pode ser vazio.");
+    if (novaSenha.length > 0 && novaSenha.length < 6) {
+      Alert.alert("Erro", "A nova senha deve ter pelo menos 6 caracteres.");
       return;
     }
 
@@ -85,13 +93,16 @@ export const UsuarioEditModal: React.FC<UsuarioEditModalProps> = ({
     try {
       const updatedUsuario: IUsuario = {
         ...usuario,
-        nome: nome,
-        email: email,
+        nome: nome.trim(),
+        email,
         is_admin: isAdmin,
         localizacao_id: localizacaoId,
       };
-
-      await onSave(updatedUsuario, selectedCargosIds);
+      await onSave(
+        updatedUsuario,
+        selectedCargosIds,
+        novaSenha.length > 0 ? novaSenha : undefined,
+      );
     } catch (error) {
       console.error("Erro ao salvar no modal:", error);
     } finally {
@@ -122,20 +133,49 @@ export const UsuarioEditModal: React.FC<UsuarioEditModalProps> = ({
           value={nome}
           onChangeText={setNome}
           placeholder="Nome Completo"
+          placeholderTextColor="#999"
         />
-        <Text style={styles.label}>Email (Não Editável)</Text>
+
+        <Text style={styles.label}>E-mail (não editável)</Text>
         <TextInput
           style={[styles.input, styles.disabledInput]}
           value={email}
           editable={false}
         />
+
+        {/* ── NOVA SENHA ── */}
+        <Text style={styles.label}>Nova senha</Text>
+        <Text style={styles.hint}>
+          Deixe em branco para manter a senha atual.
+        </Text>
+        <View style={styles.senhaContainer}>
+          <TextInput
+            style={styles.senhaInput}
+            value={novaSenha}
+            onChangeText={setNovaSenha}
+            placeholder="Digite a nova senha (mín. 6 caracteres)"
+            placeholderTextColor="#999"
+            secureTextEntry={!senhaVisivel}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <TouchableOpacity
+            onPress={() => setSenhaVisivel((v) => !v)}
+            style={styles.senhaToggle}
+          >
+            <Feather
+              name={senhaVisivel ? "eye-off" : "eye"}
+              size={20}
+              color="#0A3D62"
+            />
+          </TouchableOpacity>
+        </View>
+
         <Text style={styles.label}>Localização (Congregação)</Text>
         <View style={styles.pickerContainer}>
           <Picker
             selectedValue={localizacaoId}
-            onValueChange={(itemValue: string | null) =>
-              setLocalizacaoId(itemValue)
-            }
+            onValueChange={(v: string | null) => setLocalizacaoId(v)}
             style={
               Platform.OS === "android"
                 ? styles.pickerAndroid
@@ -143,20 +183,15 @@ export const UsuarioEditModal: React.FC<UsuarioEditModalProps> = ({
             }
             itemStyle={Platform.OS === "ios" ? styles.pickerItemIOS : undefined}
           >
-            <Picker.Item
-              label="Nenhuma Localização"
-              value={null}
-              color="#6C757D"
-            />
-
+            <Picker.Item label="Nenhuma Localização" value={null} color="#6C757D" />
             {congregacaoLocalizacoes.map((loc) => (
               <Picker.Item key={loc.id} label={loc.nome} value={loc.id} />
             ))}
           </Picker>
         </View>
+
         <View style={styles.switchContainer}>
           <Text style={styles.label}>Permissão de Administrador</Text>
-
           <Switch
             value={isAdmin}
             onValueChange={setIsAdmin}
@@ -164,6 +199,7 @@ export const UsuarioEditModal: React.FC<UsuarioEditModalProps> = ({
             thumbColor={isAdmin ? "#fff" : "#f4f3f4"}
           />
         </View>
+
         <Text style={[styles.label, styles.sectionTitle]}>
           Atribuição de Cargos
         </Text>
@@ -173,10 +209,7 @@ export const UsuarioEditModal: React.FC<UsuarioEditModalProps> = ({
             return (
               <TouchableOpacity
                 key={cargo.id}
-                style={[
-                  styles.cargoItem,
-                  isSelected && styles.cargoItemSelected,
-                ]}
+                style={[styles.cargoItem, isSelected && styles.cargoItemSelected]}
                 onPress={() => toggleCargoSelection(cargo.id)}
               >
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -185,12 +218,8 @@ export const UsuarioEditModal: React.FC<UsuarioEditModalProps> = ({
                     size={18}
                     color={isSelected ? "#fff" : "#0A3D62"}
                   />
-
                   <Text
-                    style={[
-                      styles.cargoText,
-                      isSelected && styles.cargoTextSelected,
-                    ]}
+                    style={[styles.cargoText, isSelected && styles.cargoTextSelected]}
                   >
                     {cargo.nome}
                   </Text>
@@ -200,6 +229,7 @@ export const UsuarioEditModal: React.FC<UsuarioEditModalProps> = ({
           })}
         </View>
       </ScrollView>
+
       <View style={[styles.footer, { paddingBottom: insets.bottom }]}>
         <TouchableOpacity
           style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
@@ -233,19 +263,20 @@ const styles = StyleSheet.create({
     color: "#0A3D62",
     marginRight: 10,
   },
-  closeButton: {
-    padding: 5,
-  },
-  content: {
-    padding: 20,
-    backgroundColor: "#F0F4F8",
-  },
+  closeButton: { padding: 5 },
+  content: { padding: 20, backgroundColor: "#F0F4F8" },
   label: {
     fontSize: 16,
     fontWeight: "600",
     marginTop: 15,
     marginBottom: 5,
     color: "#0A3D62",
+  },
+  hint: {
+    fontSize: 12,
+    color: "#6C757D",
+    marginBottom: 6,
+    marginTop: -4,
   },
   input: {
     backgroundColor: "#fff",
@@ -260,6 +291,23 @@ const styles = StyleSheet.create({
     backgroundColor: "#E9ECEF",
     color: "#6C757D",
   },
+  senhaContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#DCE0E6",
+    borderRadius: 8,
+  },
+  senhaInput: {
+    flex: 1,
+    padding: 12,
+    fontSize: 16,
+    color: "#333",
+  },
+  senhaToggle: {
+    padding: 12,
+  },
   pickerContainer: {
     backgroundColor: "#fff",
     borderWidth: 1,
@@ -267,16 +315,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: "hidden",
   },
-  pickerAndroid: {
-    height: 55,
-    color: "#333",
-  },
-  pickerIOS: {
-    height: 150,
-  },
-  pickerItemIOS: {
-    fontSize: 16,
-  },
+  pickerAndroid: { height: 55, color: "#333" },
+  pickerIOS: { height: 150 },
+  pickerItemIOS: { fontSize: 16 },
   switchContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -291,8 +332,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginTop: 25,
     marginBottom: 10,
-    borderBottomWidth: 0,
-    paddingBottom: 0,
     color: "#333",
   },
   cargosList: {
@@ -316,14 +355,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#0A3D62",
     borderColor: "#0A3D62",
   },
-  cargoText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: "#0A3D62",
-  },
-  cargoTextSelected: {
-    color: "#fff",
-  },
+  cargoText: { marginLeft: 8, fontSize: 14, color: "#0A3D62" },
+  cargoTextSelected: { color: "#fff" },
   footer: {
     padding: 15,
     paddingBottom: 0,
@@ -337,12 +370,6 @@ const styles = StyleSheet.create({
     padding: 15,
     alignItems: "center",
   },
-  saveButtonDisabled: {
-    backgroundColor: "#A5D6A7",
-  },
-  saveButtonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
+  saveButtonDisabled: { backgroundColor: "#A5D6A7" },
+  saveButtonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
 });

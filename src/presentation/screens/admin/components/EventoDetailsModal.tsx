@@ -102,15 +102,27 @@ const EventoDetailsModal: React.FC<EventoDetailsModalProps> = ({
             {/* Seção 1: Informações Gerais */}
             <View style={styles.section}>
               <Text style={styles.sectionHeader}>📋 Informações Gerais</Text>
-              {renderDetalhe("Local", [
-                evento.nome_localizacao,
-                evento.endereco_rua ? `${evento.endereco_rua}, ${evento.endereco_numero || "s/n"}` : null,
-                evento.endereco_bairro,
-                evento.endereco_cidade && evento.endereco_estado ? `${evento.endereco_cidade} - ${evento.endereco_estado}` : null,
-                evento.endereco_cep,
-              ].filter(Boolean).join("\n") || "Não informado")}
-              {evento.descricao ? renderDetalhe("Descrição", evento.descricao) : null}
-              {renderDetalhe("Confirmação de Presença", evento.rsvp_habilitado ? "Solicitada" : "Não solicitada")}
+
+              {renderDetalhe(
+                "Local",
+                [
+                  evento.nome_localizacao,
+                  evento.endereco_rua
+                    ? `${evento.endereco_rua}, ${evento.endereco_numero || "s/n"}`
+                    : null,
+                  evento.endereco_bairro,
+                  evento.endereco_cidade && evento.endereco_estado
+                    ? `${evento.endereco_cidade} - ${evento.endereco_estado}`
+                    : null,
+                  evento.endereco_cep,
+                ]
+                  .filter(Boolean)
+                  .join("\n") || "Não informado"
+              )}
+
+              {evento.descricao
+                ? renderDetalhe("Descrição", evento.descricao)
+                : null}
             </View>
 
             {/* Seção 2: Data e Horário */}
@@ -126,26 +138,50 @@ const EventoDetailsModal: React.FC<EventoDetailsModalProps> = ({
             {evento.recorrente && (
               <View style={styles.section}>
                 <Text style={styles.sectionHeader}>🔁 Recorrência</Text>
-                {renderDetalhe("Frequência", getNomeRecorrencia(evento.recorrencia_tipo, evento.recorrencia_intervalo))}
+
+                {renderDetalhe(
+                  "Frequência",
+                  getNomeRecorrencia(
+                    evento.recorrencia_tipo,
+                    evento.recorrencia_intervalo
+                  )
+                )}
 
                 {evento.recorrencia_tipo === "semanal"
-                  ? renderDetalhe("Dia da semana", getNomeDiaSemana(evento.recorrencia_dia_semana))
+                  ? renderDetalhe(
+                    "Dia da semana",
+                    getNomeDiaSemana(evento.recorrencia_dia_semana)
+                  )
                   : null}
 
-                {evento.recorrencia_tipo !== "semanal" && evento.recorrencia_semana_do_mes !== null
-                  ? renderDetalhe("Semana do mês", getNomeSemanaMes(evento.recorrencia_semana_do_mes))
+                {evento.recorrencia_tipo !== "semanal" &&
+                  evento.recorrencia_semana_do_mes !== null
+                  ? renderDetalhe(
+                    "Semana do mês",
+                    getNomeSemanaMes(evento.recorrencia_semana_do_mes)
+                  )
                   : null}
 
-                {evento.recorrencia_tipo !== "semanal" && evento.recorrencia_dia_semana !== null
-                  ? renderDetalhe("Dia da semana", getNomeDiaSemana(evento.recorrencia_dia_semana))
+                {evento.recorrencia_tipo !== "semanal" &&
+                  evento.recorrencia_dia_semana !== null
+                  ? renderDetalhe(
+                    "Dia da semana",
+                    getNomeDiaSemana(evento.recorrencia_dia_semana)
+                  )
                   : null}
 
                 {evento.recorrencia_fim
-                  ? renderDetalhe("Repete até", formatarData(evento.recorrencia_fim))
+                  ? renderDetalhe(
+                    "Repete até",
+                    formatarData(evento.recorrencia_fim)
+                  )
                   : null}
 
                 {evento.recorrencia_total
-                  ? renderDetalhe("Total de repetições", String(evento.recorrencia_total))
+                  ? renderDetalhe(
+                    "Total de repetições",
+                    String(evento.recorrencia_total)
+                  )
                   : null}
               </View>
             )}
@@ -154,12 +190,14 @@ const EventoDetailsModal: React.FC<EventoDetailsModalProps> = ({
             {evento.nomes_cargos && evento.nomes_cargos.length > 0 && (
               <View style={styles.section}>
                 <Text style={styles.sectionHeader}>👥 Cargos com Acesso</Text>
+
                 {evento.nomes_cargos.map((nome, index) => (
-                  <Text key={index} style={styles.cargoItem}>• {nome}</Text>
+                  <Text key={index} style={styles.cargoItem}>
+                    • {nome}
+                  </Text>
                 ))}
               </View>
             )}
-
           </ScrollView>
 
           {/* Botões de Ação */}
@@ -174,6 +212,7 @@ const EventoDetailsModal: React.FC<EventoDetailsModalProps> = ({
               >
                 <Text style={styles.textStyle}>Editar</Text>
               </TouchableOpacity>
+
               <TouchableOpacity
                 style={[styles.button, styles.deleteButton]}
                 onPress={handleDelete}

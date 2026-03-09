@@ -50,7 +50,7 @@ export interface IEvento {
   abrangencia_id: string | null;
 
   // Datas
-  data_inicio: string; // ISO string
+  data_inicio: string;
   data_fim: string | null;
 
   // Recorrência
@@ -77,6 +77,10 @@ export interface IEvento {
   nome_responsavel?: string | null;
   nomes_cargos?: string[];
 
+  // Abrangência enriquecida (join)
+  tipo_abrangencia?: string | null;   // ex: "Setor", "Regional", "Congregação"
+  nome_abrangencia?: string | null;   // ex: "Setor Vespasiano"
+
   // Endereço da localização (join)
   endereco_rua?: string | null;
   endereco_numero?: string | null;
@@ -92,7 +96,6 @@ export interface IEvento {
   alertas?: IEventoAlerta[];
 }
 
-// Alertas de notificação push
 export interface IEventoAlerta {
   id?: string;
   evento_id?: string;

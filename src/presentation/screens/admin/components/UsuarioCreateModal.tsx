@@ -5,8 +5,10 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -15,24 +17,19 @@ import {
 import { ICargo } from "../../../../domain/models/ICargo";
 import { ILocalizacao } from "../../../../domain/models/ILocalizacao";
 import { IUsuario } from "../../../../domain/models/IUsuario";
-
 import { Picker } from "@react-native-picker/picker";
-import Checkbox from "expo-checkbox";
+import { Feather } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-/**
- * Define os campos mínimos de IUsuario necessários para a criação.
- * Deve estar sincronizado com UsuarioDataToCreate do ViewModel.
- */
 type UsuarioDataToCreate = Pick<
   IUsuario,
   "nome" | "email" | "localizacao_id" | "is_admin"
 >;
 
-// Definição do tipo de função onSave
 type OnCreateSave = (
   novoUsuario: UsuarioDataToCreate,
   cargosIds: string[],
-  senha: string
+  senha: string,
 ) => Promise<void>;
 
 interface UsuarioCreateModalProps {
@@ -43,13 +40,6 @@ interface UsuarioCreateModalProps {
   onSave: OnCreateSave;
 }
 
-const initialNewUser: UsuarioDataToCreate = {
-  nome: "",
-  email: "",
-  is_admin: false,
-  localizacao_id: null,
-};
-
 export const UsuarioCreateModal: React.FC<UsuarioCreateModalProps> = ({
   isVisible,
   onClose,
@@ -57,100 +47,71 @@ export const UsuarioCreateModal: React.FC<UsuarioCreateModalProps> = ({
   availableLocalizacoes,
   onSave,
 }) => {
-  const [userData, setUserData] = useState<UsuarioDataToCreate>(initialNewUser);
+  const insets = useSafeAreaInsets();
+
+  const congregacoes = availableLocalizacoes.filter(
+    (loc) => loc?.tipo === "Congregação" && loc.nome?.length > 0,
+  );
+
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [confirmarSenha, setConfirmarSenha] = useState("");
+  const [senhaVisivel, setSenhaVisivel] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  // Inicializa com o primeiro id real da lista, ou null se vazia
+  const [localizacaoId, setLocalizacaoId] = useState<string | null>(
+    congregacoes[0]?.id ?? null,
+  );
   const [selectedCargoIds, setSelectedCargoIds] = useState<string[]>([]);
-  const [password, setPassword] = useState<string>("");
-  const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
 
-  const congregacaoLocalizacoes: ILocalizacao[] = availableLocalizacoes
-    .filter((loc) => !!loc)
-    .filter(
-      (loc) => loc.tipo === "Congregação" && loc.nome && loc.nome.length > 0
-    );
-
-  const pickerItems = [
-    { id: null, nome: "Nenhuma (Opcional)" } as unknown as ILocalizacao,
-    ...congregacaoLocalizacoes,
-  ];
-
+  // Reinicia o formulário ao abrir — e garante que localizacaoId
+  // aponta para um valor válido da lista atual
   useEffect(() => {
     if (isVisible) {
-      setUserData(initialNewUser);
+      setNome("");
+      setEmail("");
+      setSenha("");
+      setConfirmarSenha("");
+      setSenhaVisivel(false);
+      setIsAdmin(false);
+      setLocalizacaoId(congregacoes[0]?.id ?? null);
       setSelectedCargoIds([]);
-      setPassword("");
-      setConfirmPassword("");
       setIsSaving(false);
     }
   }, [isVisible]);
 
-  const handleInputChange = (
-    field: keyof UsuarioDataToCreate,
-    value: string | boolean | null
-  ) => {
-    if (
-      field === "localizacao_id" &&
-      (typeof value === "string" || value === null)
-    ) {
-      setUserData((prev) => ({
-        ...prev,
-        [field]: value === "" ? null : value,
-      }));
-    } else if (typeof value === "boolean") {
-      setUserData((prev) => ({ ...prev, [field]: value }));
-    } else if (typeof value === "string") {
-      setUserData((prev) => ({ ...prev, [field]: value }));
-    }
-  };
-
-  const handleLocationChange = (localizacaoId: string | null) => {
-    handleInputChange("localizacao_id", localizacaoId);
-  };
-
-  const handleToggleCargo = (cargoId: string) => {
+  const toggleCargo = (cargoId: string) => {
     setSelectedCargoIds((prev) =>
-      prev.includes(cargoId)
-        ? prev.filter((id) => id !== cargoId)
-        : [...prev, cargoId]
+      prev.includes(cargoId) ? prev.filter((id) => id !== cargoId) : [...prev, cargoId],
     );
   };
 
   const handleSave = async () => {
-    if (!userData.nome || !userData.email || !password) {
-      Alert.alert(
-        "Campos Obrigatórios",
-        "Nome, E-mail e Senha são obrigatórios."
-      );
+    if (!nome.trim() || !email.trim() || !senha) {
+      Alert.alert("Campos obrigatórios", "Nome, e-mail e senha são obrigatórios.");
       return;
     }
-
-    if (password.length < 6) {
-      Alert.alert(
-        "Senha Inválida",
-        "A senha deve ter pelo menos 6 caracteres."
-      );
+    if (senha.length < 6) {
+      Alert.alert("Senha inválida", "A senha deve ter pelo menos 6 caracteres.");
       return;
     }
-
-    if (password !== confirmPassword) {
-      Alert.alert(
-        "Confirmação de Senha",
-        "As senhas digitadas não são idênticas."
-      );
+    if (senha !== confirmarSenha) {
+      Alert.alert("Confirmação de senha", "As senhas digitadas não são idênticas.");
       return;
     }
 
     setIsSaving(true);
-
     try {
-      await onSave(userData, selectedCargoIds, password);
-
+      await onSave(
+        { nome: nome.trim(), email: email.trim(), is_admin: isAdmin, localizacao_id: localizacaoId },
+        selectedCargoIds,
+        senha,
+      );
       onClose();
     } catch (e) {
-      const errorMessage =
-        (e as Error).message || "Erro desconhecido na criação.";
-      Alert.alert("Erro ao Criar", errorMessage);
-      console.error("Erro no modal de criação:", e);
+      Alert.alert("Erro ao criar", (e as Error).message || "Erro desconhecido.");
     } finally {
       setIsSaving(false);
     }
@@ -161,187 +122,222 @@ export const UsuarioCreateModal: React.FC<UsuarioCreateModalProps> = ({
       visible={isVisible}
       onRequestClose={onClose}
       animationType="slide"
-      transparent={true}
+      presentationStyle="pageSheet"
     >
-      <View style={styles.centeredView}>
-        <View style={styles.modalView}>
-          <Text style={styles.modalTitle}>Adicionar Novo Membro</Text>
-          <ScrollView style={styles.scrollView}>
-            <Text style={styles.label}>Nome Completo *</Text>
-            <TextInput
-              style={styles.input}
-              value={userData.nome}
-              onChangeText={(text) => handleInputChange("nome", text)}
-            />
-            <Text style={styles.label}>E-mail *</Text>
-            <TextInput
-              style={styles.input}
-              value={userData.email}
-              onChangeText={(text) => handleInputChange("email", text)}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            <Text style={styles.label}>Senha *</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={true}
-            />
-            <Text style={styles.label}>Confirmar Senha *</Text>
-            <TextInput
-              style={styles.input}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry={true}
-            />
-            <Text style={styles.label}>Localização (Congregação)</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={userData.localizacao_id}
-                onValueChange={handleLocationChange}
-                style={styles.picker}
-              >
-                {pickerItems.map((loc, index) => (
-                  <Picker.Item
-                    key={loc.id || `none-${index}`}
-                    label={loc.nome ?? "Nome Inválido"}
-                    value={loc.id}
-                  />
-                ))}
-              </Picker>
-            </View>
-            <View style={styles.checkboxContainer}>
-              <Checkbox
-                value={userData.is_admin}
-                onValueChange={(value) => handleInputChange("is_admin", value)}
-              />
-              <Text style={styles.checkboxLabel}>É Administrador?</Text>
-            </View>
-            <Text style={styles.label}>Cargos</Text>
-            {availableCargos.map((cargo) => (
-              <View key={cargo.id} style={styles.checkboxContainer}>
-                <Checkbox
-                  value={selectedCargoIds.includes(cargo.id)}
-                  onValueChange={() => handleToggleCargo(cargo.id)}
-                />
-                <Text style={styles.checkboxLabel}>{cargo.nome}</Text>
-              </View>
-            ))}
-          </ScrollView>
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[styles.button, styles.cancelButton]}
-              onPress={onClose}
-              disabled={isSaving}
-            >
-              <Text style={styles.buttonText}>Cancelar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.button, styles.saveButton]}
-              onPress={handleSave}
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.buttonText}>Criar Membro</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Adicionar Novo Membro</Text>
+        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+          <Feather name="x" size={24} color="#0A3D62" />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.label}>Nome Completo *</Text>
+        <TextInput
+          style={styles.input}
+          value={nome}
+          onChangeText={setNome}
+          placeholder="Nome completo"
+          placeholderTextColor="#999"
+        />
+
+        <Text style={styles.label}>E-mail *</Text>
+        <TextInput
+          style={styles.input}
+          value={email}
+          onChangeText={setEmail}
+          placeholder="email@exemplo.com"
+          placeholderTextColor="#999"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        <Text style={styles.label}>Senha *</Text>
+        <View style={styles.senhaContainer}>
+          <TextInput
+            style={styles.senhaInput}
+            value={senha}
+            onChangeText={setSenha}
+            placeholder="Mínimo 6 caracteres"
+            placeholderTextColor="#999"
+            secureTextEntry={!senhaVisivel}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <TouchableOpacity onPress={() => setSenhaVisivel((v) => !v)} style={styles.senhaToggle}>
+            <Feather name={senhaVisivel ? "eye-off" : "eye"} size={20} color="#0A3D62" />
+          </TouchableOpacity>
         </View>
+
+        <Text style={styles.label}>Confirmar Senha *</Text>
+        <TextInput
+          style={styles.input}
+          value={confirmarSenha}
+          onChangeText={setConfirmarSenha}
+          placeholder="Repita a senha"
+          placeholderTextColor="#999"
+          secureTextEntry={!senhaVisivel}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        <Text style={styles.label}>Localização (Congregação)</Text>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={localizacaoId}
+            onValueChange={(v) => setLocalizacaoId(v as string | null)}
+            style={Platform.OS === "android" ? styles.pickerAndroid : styles.pickerIOS}
+            itemStyle={Platform.OS === "ios" ? styles.pickerItemIOS : undefined}
+          >
+            <Picker.Item label="Nenhuma (Opcional)" value={null} color="#6C757D" />
+            {congregacoes.map((loc) => (
+              <Picker.Item key={loc.id} label={loc.nome} value={loc.id} />
+            ))}
+          </Picker>
+        </View>
+
+        <View style={styles.switchContainer}>
+          <Text style={styles.label}>É Administrador?</Text>
+          <Switch
+            value={isAdmin}
+            onValueChange={setIsAdmin}
+            trackColor={{ false: "#767577", true: "#0A3D62" }}
+            thumbColor={isAdmin ? "#fff" : "#f4f3f4"}
+          />
+        </View>
+
+        <Text style={[styles.label, { marginTop: 20 }]}>Cargos</Text>
+        <View style={styles.cargosList}>
+          {availableCargos.map((cargo) => {
+            const selected = selectedCargoIds.includes(cargo.id);
+            return (
+              <TouchableOpacity
+                key={cargo.id}
+                style={[styles.cargoItem, selected && styles.cargoItemSelected]}
+                onPress={() => toggleCargo(cargo.id)}
+              >
+                <Feather
+                  name={selected ? "check-square" : "square"}
+                  size={18}
+                  color={selected ? "#fff" : "#0A3D62"}
+                />
+                <Text style={[styles.cargoText, selected && styles.cargoTextSelected]}>
+                  {cargo.nome}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </ScrollView>
+
+      <View style={[styles.footer, { paddingBottom: insets.bottom || 15 }]}>
+        <TouchableOpacity
+          style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+          onPress={handleSave}
+          disabled={isSaving}
+        >
+          {isSaving ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.saveButtonText}>Criar Membro</Text>
+          )}
+        </TouchableOpacity>
       </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  centeredView: {
-    flex: 1,
-    justifyContent: "center",
+  header: {
+    flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#DCE0E6",
+    backgroundColor: "#FFFFFF",
   },
-  modalView: {
-    width: "90%",
-    maxHeight: "80%",
-    backgroundColor: "white",
-    borderRadius: 10,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 15,
+  headerTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: "700",
     color: "#0A3D62",
-    textAlign: "center",
   },
-  scrollView: {
-    maxHeight: 400,
-    marginBottom: 15,
-  },
+  closeButton: { padding: 5 },
+  content: { padding: 20, backgroundColor: "#F0F4F8" },
   label: {
     fontSize: 16,
     fontWeight: "600",
-    marginTop: 10,
+    marginTop: 15,
     marginBottom: 5,
-    color: "#333",
+    color: "#0A3D62",
   },
   input: {
+    backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 10,
+    borderColor: "#DCE0E6",
+    borderRadius: 8,
+    padding: 12,
     fontSize: 16,
     color: "#333",
   },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    marginBottom: 10,
-  },
-  picker: {
-    height: 54,
-    width: "100%",
-    color: "#333",
-  },
-  checkboxContainer: {
+  senhaContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 5,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#DCE0E6",
+    borderRadius: 8,
   },
-  checkboxLabel: {
-    marginLeft: 8,
-    fontSize: 16,
+  senhaInput: { flex: 1, padding: 12, fontSize: 16, color: "#333" },
+  senhaToggle: { padding: 12 },
+  pickerContainer: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#DCE0E6",
+    borderRadius: 8,
+    overflow: "hidden",
   },
-  buttonContainer: {
+  pickerAndroid: { height: 55, color: "#333" },
+  pickerIOS: { height: 150 },
+  pickerItemIOS: { fontSize: 16 },
+  switchContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 15,
-  },
-  button: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
     alignItems: "center",
-    marginHorizontal: 5,
+    marginTop: 20,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#DCE0E6",
+  },
+  cargosList: { flexDirection: "row", flexWrap: "wrap", marginTop: 8 },
+  cargoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#DCE0E6",
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  cargoItemSelected: { backgroundColor: "#0A3D62", borderColor: "#0A3D62" },
+  cargoText: { marginLeft: 8, fontSize: 14, color: "#0A3D62" },
+  cargoTextSelected: { color: "#fff" },
+  footer: {
+    padding: 15,
+    borderTopWidth: 1,
+    borderTopColor: "#DCE0E6",
+    backgroundColor: "#FFFFFF",
   },
   saveButton: {
     backgroundColor: "#28A745",
+    borderRadius: 8,
+    padding: 15,
+    alignItems: "center",
   },
-  cancelButton: {
-    backgroundColor: "#DC3545",
-  },
-  buttonText: {
-    color: "#FFFFFF",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
+  saveButtonDisabled: { backgroundColor: "#A5D6A7" },
+  saveButtonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
 });

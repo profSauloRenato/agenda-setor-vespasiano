@@ -89,7 +89,7 @@ const ModeloFormModal: React.FC<{
             style={styles.input}
             value={nome}
             onChangeText={setNome}
-            placeholder="Ex: Reunião de Congregação"
+            placeholder="Ex: Congregação"
             placeholderTextColor="#AAA"
             maxLength={100}
             autoFocus

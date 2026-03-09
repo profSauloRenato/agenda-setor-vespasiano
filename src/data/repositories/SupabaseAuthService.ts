@@ -23,6 +23,8 @@ export class SupabaseAuthService implements IAuthService {
         password,
       });
 
+      console.log("AUTH RESULT:", JSON.stringify({ data, error }));
+
       if (error) {
         if (
           error.status === 400 ||

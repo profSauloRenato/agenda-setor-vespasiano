@@ -39,10 +39,10 @@ LocaleConfig.defaultLocale = "pt-br";
 // CONSTANTES DE COR
 // -------------------------------------------
 const TIPO_CORES: Record<string, string> = {
-  "Reunião de Congregação": "#28A745",
-  "Reunião de Setor": "#17A2B8",
-  "Reunião de Administração": "#FFC107",
-  "Reunião de Regional": "#DC3545",
+  "Congregação": "#28A745",
+  "Setor": "#17A2B8",
+  "Administração": "#FFC107",
+  "Regional": "#DC3545",
   "Evento Especial": "#6F42C1",
   "Culto": "#0A3D62",
 };
@@ -80,7 +80,7 @@ const EventoCard: React.FC<{
   evento: IEvento;
   onPress: (evento: IEvento) => void;
 }> = ({ evento, onPress }) => {
-  const cor = getTipoCor(evento.tipo);
+  const cor = getTipoCor(evento.tipo_abrangencia ?? evento.tipo);
   return (
     <TouchableOpacity
       style={[styles.card, { borderLeftColor: cor }]}
@@ -94,7 +94,7 @@ const EventoCard: React.FC<{
       </View>
       <View style={styles.cardInfo}>
         <Text style={styles.cardTitulo}>{evento.titulo}</Text>
-        <Text style={[styles.cardTipo, { color: cor }]}>{evento.tipo}</Text>
+        <Text style={[styles.cardTipo, { color: cor }]}>{evento.tipo_abrangencia ?? evento.tipo}</Text>
         {evento.nome_localizacao && (
           <Text style={styles.cardLocal}>📍 {evento.nome_localizacao}</Text>
         )}

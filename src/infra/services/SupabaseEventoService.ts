@@ -44,6 +44,9 @@ export class SupabaseEventoService implements IEventoService {
       categoria_modelo: row.evento_modelo?.categoria ?? null,
       nome_localizacao: row.localizacao?.nome ?? null,
       nome_responsavel: row.responsavel?.nome ?? null,
+      // Abrangência enriquecida
+      tipo_abrangencia: row.abrangencia?.tipo ?? null,
+      nome_abrangencia: row.abrangencia?.nome ?? null,
       endereco_rua: row.localizacao?.endereco_rua ?? null,
       endereco_numero: row.localizacao?.endereco_numero ?? null,
       endereco_bairro: row.localizacao?.endereco_bairro ?? null,
@@ -63,10 +66,12 @@ export class SupabaseEventoService implements IEventoService {
     };
   }
 
+  // Adicionado join em abrangencia_id para obter tipo e nome da abrangência
   private readonly SELECT_QUERY = `
     *,
     evento_modelo:modelo_id (id, nome, categoria),
     localizacao:localizacao_id (nome, endereco_rua, endereco_numero, endereco_bairro, endereco_cidade, endereco_estado, endereco_cep),
+    abrangencia:abrangencia_id (tipo, nome),
     responsavel:responsavel_id (nome),
     evento_alerta (id, evento_id, horas_antes, enviado, enviado_em)
   `;
@@ -99,15 +104,14 @@ export class SupabaseEventoService implements IEventoService {
   async buscarEventos(params: {
     dataInicio?: string;
     dataFim?: string;
-    localizacaoId?: string;       // ID da localização do usuário (para hierarquia)
-    localizacaoIds?: string[];     // fallback para compatibilidade
-    cargoIds?: string[];           // cargos do usuário (para filtro de visibilidade)
+    localizacaoId?: string;
+    localizacaoIds?: string[];
+    cargoIds?: string[];
     modeloIds?: string[];
     cargosVisiveis?: string[];
     categoriaModelo?: string;
   }): Promise<IEvento[]> {
 
-    // Se temos localizacaoId e cargoIds, usa a RPC com filtro hierárquico
     if (params.localizacaoId && params.cargoIds && params.cargoIds.length > 0) {
       const { data, error } = await this.supabase.rpc("get_eventos_para_usuario", {
         p_localizacao_id: params.localizacaoId,
@@ -118,7 +122,6 @@ export class SupabaseEventoService implements IEventoService {
 
       if (error) throw new Error(`Falha ao buscar eventos: ${error.message}`);
 
-      // Busca detalhes completos dos IDs retornados
       const ids = (data ?? []).map((e: any) => e.id);
       if (ids.length === 0) return [];
 
@@ -131,15 +134,12 @@ export class SupabaseEventoService implements IEventoService {
       if (errDetalhes) throw new Error(`Falha ao buscar detalhes: ${errDetalhes.message}`);
 
       let eventos = (detalhes ?? []).map(this.mapToIEvento.bind(this));
-
       if (params.categoriaModelo) {
         eventos = eventos.filter((e) => e.categoria_modelo === params.categoriaModelo);
       }
-
       return eventos;
     }
 
-    // Fallback: filtro simples sem hierarquia (usado no painel admin)
     let query = this.supabase
       .from(this.DB_TABLE)
       .select(this.SELECT_QUERY)
@@ -161,7 +161,6 @@ export class SupabaseEventoService implements IEventoService {
     if (params.categoriaModelo) {
       eventos = eventos.filter((e) => e.categoria_modelo === params.categoriaModelo);
     }
-
     return eventos;
   }
 

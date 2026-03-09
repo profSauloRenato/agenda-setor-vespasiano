@@ -12,6 +12,7 @@ import {
 import { IDeleteUsuario } from "../../domain/use_cases/usuarios/DeleteUsuario";
 import { IGetUsuarios } from "../../domain/use_cases/usuarios/GetUsuarios";
 import { IUpdateUsuario } from "../../domain/use_cases/usuarios/UpdateUsuario";
+import { IUsuarioService } from "../../domain/services/IUsuarioService";
 
 export interface UsuariosState {
   usuarios: IUsuario[];
@@ -35,7 +36,6 @@ export class UsuariosViewModel {
     cargosDisponiveis: [],
   };
 
-  // Callback para notificar a View de mudanças de estado
   private onStateChange?: () => void;
 
   public get state(): UsuariosState {
@@ -58,46 +58,33 @@ export class UsuariosViewModel {
     private createUsuarioUseCase: ICreateUsuario,
     private updateUsuarioUseCase: IUpdateUsuario,
     private deleteUsuarioUseCase: IDeleteUsuario,
+    private usuarioService: IUsuarioService,
   ) {}
 
   public async loadReferenceData(usuarioLogado: IUsuario): Promise<void> {
     this.setState({ isLoading: true, error: null });
-
     try {
       const [localizacoes, cargos] = await Promise.all([
         this.getLocalizacoesUseCase.execute(usuarioLogado),
         this.getCargosUseCase.execute(usuarioLogado),
       ]);
-
-      this.setState({
-        localizacoesDisponiveis: localizacoes,
-        cargosDisponiveis: cargos,
-        isLoading: false,
-      });
+      this.setState({ localizacoesDisponiveis: localizacoes, cargosDisponiveis: cargos, isLoading: false });
     } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Erro desconhecido ao carregar dados de referência.";
-      this.setState({ error: errorMessage, isLoading: false });
-      throw new Error(errorMessage);
+      const msg = error instanceof Error ? error.message : "Erro ao carregar dados de referência.";
+      this.setState({ error: msg, isLoading: false });
+      throw new Error(msg);
     }
   }
 
   public async loadUsuarios(usuarioLogado: IUsuario): Promise<void> {
     this.setState({ isLoading: true, error: null });
-
     try {
-      const fetchedUsuarios =
-        await this.getUsuariosUseCase.execute(usuarioLogado);
+      const fetchedUsuarios = await this.getUsuariosUseCase.execute(usuarioLogado);
       this.setState({ usuarios: fetchedUsuarios, isLoading: false });
     } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Erro desconhecido ao carregar usuários.";
-      this.setState({ error: errorMessage, isLoading: false });
-      throw new Error(errorMessage);
+      const msg = error instanceof Error ? error.message : "Erro ao carregar usuários.";
+      this.setState({ error: msg, isLoading: false });
+      throw new Error(msg);
     }
   }
 
@@ -108,7 +95,6 @@ export class UsuariosViewModel {
     senha: string,
   ): Promise<void> {
     this.setState({ isLoading: true, error: null });
-
     try {
       const dataToCreate: CreateUsuarioParams = {
         ...novoUsuario,
@@ -116,39 +102,41 @@ export class UsuariosViewModel {
         localizacao_id: novoUsuario.localizacao_id,
         senha,
       };
-
       await this.createUsuarioUseCase.execute(adminUser, dataToCreate);
       await this.loadUsuarios(adminUser);
     } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Falha ao criar o novo membro.";
-      this.setState({ error: errorMessage, isLoading: false });
-      throw new Error(errorMessage);
+      const msg = error instanceof Error ? error.message : "Falha ao criar o novo membro.";
+      this.setState({ error: msg, isLoading: false });
+      throw new Error(msg);
     }
   }
 
+  /**
+   * Atualiza dados básicos, cargos e, opcionalmente, a senha do usuário.
+   * novaSenha só é enviada ao banco se for uma string não vazia.
+   */
   public async handleUpdateUsuario(
     usuarioLogado: IUsuario,
     usuarioToUpdate: IUsuario,
     novosCargosIds: string[],
+    novaSenha?: string,
   ): Promise<void> {
     this.setState({ error: null });
-
     try {
       await this.updateUsuarioUseCase.execute(usuarioLogado, {
         usuario: usuarioToUpdate,
         novosCargosIds,
       });
+
+      if (novaSenha && novaSenha.trim().length >= 6) {
+        await this.usuarioService.updateSenha(usuarioToUpdate.id, novaSenha.trim());
+      }
+
       await this.loadUsuarios(usuarioLogado);
     } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Erro desconhecido ao atualizar usuário.";
-      this.setState({ error: errorMessage });
-      throw new Error(errorMessage);
+      const msg = error instanceof Error ? error.message : "Erro ao atualizar usuário.";
+      this.setState({ error: msg });
+      throw new Error(msg);
     }
   }
 
@@ -157,17 +145,13 @@ export class UsuariosViewModel {
     userId: string,
   ): Promise<void> {
     this.setState({ isLoading: true, error: null });
-
     try {
       await this.deleteUsuarioUseCase.execute(executor, userId);
       await this.loadUsuarios(executor);
     } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Erro desconhecido ao deletar usuário.";
-      this.setState({ error: errorMessage, isLoading: false });
-      throw new Error(errorMessage);
+      const msg = error instanceof Error ? error.message : "Erro ao deletar usuário.";
+      this.setState({ error: msg, isLoading: false });
+      throw new Error(msg);
     }
   }
 }
