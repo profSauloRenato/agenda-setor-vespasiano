@@ -305,6 +305,8 @@ export const useLocalizacoesViewModel = (
             "Você não tem permissão de administrador para esta ação.";
         } else if (err instanceof DomainError) {
           errorMessage = err.message;
+        } else if (err instanceof Error) {
+          errorMessage = err.message;
         }
         console.error("Erro no deleteLocalizacao:", err);
         setState((prev) => ({ ...prev, error: errorMessage }));
