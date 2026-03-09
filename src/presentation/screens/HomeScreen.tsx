@@ -705,7 +705,7 @@ const styles = StyleSheet.create({
   },
   agendaButton: {
     position: "absolute",
-    bottom: 50,
+    bottom: 60,
     left: 20,
     right: 20,
     backgroundColor: "#17A2B8",

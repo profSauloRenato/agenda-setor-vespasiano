@@ -165,25 +165,22 @@ export class SupabaseLocalizacaoService implements ILocalizacaoService {
    * Deleta uma localização.
    */
   async deleteLocalizacao(id: string): Promise<void> {
-    console.log(
-      `SupabaseLocalizacaoService: Tentando deletar localização ID: ${id}`
-    );
-
     const { error } = await this.supabase
       .from(this.DB_TABLE)
       .delete()
       .eq("id", id);
 
     if (error) {
-      console.error(
-        "SupabaseLocalizacaoService: Erro ao deletar localização:",
-        error
-      );
+      console.error("SupabaseLocalizacaoService: Erro ao deletar localização:", error);
 
-      // Tratamento específico para erro de Chave Estrangeira (localização em uso por usuário)
       if (error.code === "23503") {
+        if (error.message.includes("parent_id")) {
+          throw new Error(
+            "Não é possível excluir: esta localização possui subdivisões cadastradas (Administração, Setor ou Congregação). Exclua as subdivisões primeiro."
+          );
+        }
         throw new Error(
-          "Não é possível excluir a localização: ela ainda está atribuída a um ou mais usuários."
+          "Não é possível excluir: esta localização está atribuída a um ou mais membros."
         );
       }
 
