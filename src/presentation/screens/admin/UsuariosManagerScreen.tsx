@@ -20,7 +20,7 @@ import { UsuarioCreateModal } from "./components/UsuarioCreateModal";
 import { UsuarioEditModal } from "./components/UsuarioEditModal";
 import SafeScreen from "../../components/SafeScreen";
 
-type UsuarioDataToCreate = Pick<IUsuario, "nome" | "email" | "localizacao_id" | "is_admin" | "pode_cadastrar_eventos">;
+type UsuarioDataToCreate = Pick<IUsuario, "nome" | "email" | "localizacao_id" | "is_admin">;
 
 interface UsuariosManagerScreenProps {
   usuariosViewModel: UsuariosViewModel;

@@ -96,7 +96,6 @@ export class SupabaseUsuarioService implements IUsuarioService {
       localizacao_id: data.localizacao_id,
       nome_localizacao: data.nome_localizacao ?? undefined,
       is_admin: data.is_admin ?? false,
-      pode_cadastrar_eventos: data.pode_cadastrar_eventos ?? false,
       device_token: data.device_token ?? null,
       cargos: data.cargos ?? [],
     } as IUsuario;
@@ -120,11 +119,10 @@ export class SupabaseUsuarioService implements IUsuarioService {
         nome,
         email,
         is_admin,
-        pode_cadastrar_eventos,
         localizacao_id,
         localizacao:localizacao_id(nome),
         cargos_link:${this.JUNCTION_TABLE}(
-            cargo:cargo_id(id, nome, descricao, pode_enviar_push)
+            cargo:cargo_id(id, nome, descricao)
         )
       `);
 
@@ -136,7 +134,9 @@ export class SupabaseUsuarioService implements IUsuarioService {
       throw new Error(
         `Falha no banco de dados ao listar usuários. ${error.message}`,
       );
-    } // 2. Mapeamento dos resultados para o formato IUsuario
+    } 
+    
+    // 2. Mapeamento dos resultados para o formato IUsuario
 
     const usersWithDetails: IUsuario[] = (data || []).map((rawUser: any) => {
       // Obtém o nome da localização (rawUser.localizacao é o objeto retornado pelo JOIN)
@@ -151,7 +151,6 @@ export class SupabaseUsuarioService implements IUsuarioService {
         nome: rawUser.nome,
         email: rawUser.email,
         is_admin: rawUser.is_admin,
-        pode_cadastrar_eventos: rawUser.pode_cadastrar_eventos ?? false,
         localizacao_id: rawUser.localizacao_id,
         nome_localizacao: nome_localizacao,
         cargos: cargos,
@@ -167,8 +166,7 @@ export class SupabaseUsuarioService implements IUsuarioService {
    */
 
   async updateUsuarioBasico(usuario: IUsuario): Promise<IUsuario> {
-    const { id, nome, localizacao_id, is_admin, pode_cadastrar_eventos } =
-      usuario;
+    const { id, nome, localizacao_id, is_admin } = usuario;
 
     const { data, error } = await this.supabase
       .from(this.DB_TABLE)
@@ -176,7 +174,6 @@ export class SupabaseUsuarioService implements IUsuarioService {
         nome: nome,
         localizacao_id: localizacao_id,
         is_admin: is_admin,
-        pode_cadastrar_eventos: pode_cadastrar_eventos,
       })
       .eq("id", id)
       .select() // Pede o retorno da linha atualizada

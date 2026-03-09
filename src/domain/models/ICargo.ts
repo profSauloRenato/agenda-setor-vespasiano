@@ -16,10 +16,6 @@ export interface ICargo {
   // Marcada como opcional (?) pois pode ser nula no banco de dados.
   descricao?: string; // <-- PROPRIEDADE ADICIONADA PARA RESOLVER O ERRO
 
-  // Permissão booleana que indica se o usuário com este cargo pode enviar mensagens Push Administrativas (CRÍTICO para a Fase 4).
-  // Mapeia para a coluna 'pode_enviar_push'.
-  pode_enviar_push: boolean;
-
   // --------------------------------------------------------------------
   // Propriedades Estendidas (Opcionais para a UI/Lógica de Negócio)
   // --------------------------------------------------------------------

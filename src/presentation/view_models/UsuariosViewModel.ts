@@ -23,7 +23,7 @@ export interface UsuariosState {
 
 type UsuarioDataToCreate = Pick<
   IUsuario,
-  "nome" | "email" | "localizacao_id" | "is_admin" | "pode_cadastrar_eventos"
+  "nome" | "email" | "localizacao_id" | "is_admin"
 >;
 
 export class UsuariosViewModel {

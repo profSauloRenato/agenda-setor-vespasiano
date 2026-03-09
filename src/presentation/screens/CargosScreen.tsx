@@ -65,15 +65,6 @@ const CargoItem: React.FC<{
         <Text style={styles.cargoDescription}>
           {cargo.descricao || "Sem descrição."}
         </Text>
-
-        {/* Visualização Rápida de Permissão */}
-        <Text
-          style={
-            cargo.pode_enviar_push ? styles.pushEnabled : styles.pushDisabled
-          }
-        >
-          {cargo.pode_enviar_push ? "Permite PUSH" : "PUSH Desabilitado"}
-        </Text>
       </View>
       <View style={styles.actionsContainer}>
         {/* Botão de Edição */}
@@ -313,18 +304,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#6C757D",
     marginTop: 4,
-  },
-  pushEnabled: {
-    fontSize: 12,
-    color: "#28A745", // Verde para habilitado
-    fontWeight: "500",
-    marginTop: 5,
-  },
-  pushDisabled: {
-    fontSize: 12,
-    color: "#DC3545", // Vermelho para desabilitado
-    fontWeight: "500",
-    marginTop: 5,
   },
   actionsContainer: {
     flexDirection: "row",

@@ -463,7 +463,7 @@ const HomeScreen: React.FC = () => {
           <Text style={styles.headerSaudacao}>
             Olá, {user?.nome?.split(" ")[0] ?? "irmão"} ›
           </Text>
-          <Text style={styles.headerSubtitulo}>Agenda Setor Vespasiano</Text>
+          <Text style={styles.headerSubtitulo}>Agenda Setor</Text>
         </TouchableOpacity>
         <View style={styles.headerActions}>
           {isAdmin && (

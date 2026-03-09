@@ -20,7 +20,6 @@ import { CreateCargoParams } from '../../domain/use_cases/cargos/CreateCargo';
 interface FormState {
     nome: string;
     descricao: string;
-    pode_enviar_push: boolean; // Propriedade do ICargo
 }
 
 // ------------------------------------------
@@ -59,7 +58,6 @@ const CargoFormModal: React.FC<CargoFormModalProps> = ({
     const initialState: FormState = {
         nome: '',
         descricao: '',
-        pode_enviar_push: false,
     };
 
     const [form, setForm] = useState<FormState>(initialState);
@@ -71,7 +69,6 @@ const CargoFormModal: React.FC<CargoFormModalProps> = ({
             setForm({
                 nome: cargo.nome,
                 descricao: cargo.descricao || '',
-                pode_enviar_push: cargo.pode_enviar_push,
             });
         } else {
             // Limpa o formulário se for uma criação nova
@@ -86,7 +83,7 @@ const CargoFormModal: React.FC<CargoFormModalProps> = ({
     const handleSubmit = async () => {
         // Objeto de dados a ser enviado
         const dataToSend = isEditing
-            ? { ...form, id: cargo.id, pode_enviar_push: form.pode_enviar_push } as ICargo // Se edição, precisa do ID
+            ? { ...form, id: cargo.id } as ICargo // Se edição, precisa do ID
             : form as CreateCargoParams; // Se criação, é apenas o payload
 
         // Envia para o ViewModel
@@ -131,17 +128,6 @@ const CargoFormModal: React.FC<CargoFormModalProps> = ({
                         numberOfLines={3}
                         maxLength={255}
                     />
-
-                    {/* Campo de Permissão Push */}
-                    <View style={styles.switchContainer}>
-                        <Text style={styles.switchLabel}>Pode Enviar Notificações Push?</Text>
-                        <Switch
-                            onValueChange={(value) => handleChange('pode_enviar_push', value)}
-                            value={form.pode_enviar_push}
-                            trackColor={{ false: "#767577", true: "#0A3D62" }}
-                            thumbColor={form.pode_enviar_push ? "#17A2B8" : "#f4f3f4"}
-                        />
-                    </View>
 
                     {/* Exibição de Erros */}
                     {error && <Text style={styles.errorText}>{error}</Text>}
@@ -218,17 +204,6 @@ const styles = StyleSheet.create({
     textArea: {
         height: 80,
         textAlignVertical: 'top',
-    },
-    switchContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 20,
-        paddingVertical: 5,
-    },
-    switchLabel: {
-        fontSize: 16,
-        color: '#333',
     },
     errorText: {
         color: '#DC3545',

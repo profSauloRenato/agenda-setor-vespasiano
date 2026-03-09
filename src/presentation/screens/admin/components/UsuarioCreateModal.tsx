@@ -25,7 +25,7 @@ import Checkbox from "expo-checkbox";
  */
 type UsuarioDataToCreate = Pick<
   IUsuario,
-  "nome" | "email" | "localizacao_id" | "is_admin" | "pode_cadastrar_eventos"
+  "nome" | "email" | "localizacao_id" | "is_admin"
 >;
 
 // Definição do tipo de função onSave
@@ -48,7 +48,6 @@ const initialNewUser: UsuarioDataToCreate = {
   email: "",
   is_admin: false,
   localizacao_id: null,
-  pode_cadastrar_eventos: false,
 };
 
 export const UsuarioCreateModal: React.FC<UsuarioCreateModalProps> = ({
@@ -218,15 +217,6 @@ export const UsuarioCreateModal: React.FC<UsuarioCreateModalProps> = ({
                 onValueChange={(value) => handleInputChange("is_admin", value)}
               />
               <Text style={styles.checkboxLabel}>É Administrador?</Text>
-            </View>
-            <View style={styles.checkboxContainer}>
-              <Checkbox
-                value={userData.pode_cadastrar_eventos}
-                onValueChange={(value) =>
-                  handleInputChange("pode_cadastrar_eventos", value)
-                }
-              />
-              <Text style={styles.checkboxLabel}>Pode Cadastrar Eventos?</Text>
             </View>
             <Text style={styles.label}>Cargos</Text>
             {availableCargos.map((cargo) => (

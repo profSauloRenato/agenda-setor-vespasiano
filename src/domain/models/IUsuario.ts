@@ -9,7 +9,6 @@ export interface IUsuario {
   nome: string;
   localizacao_id: string | null;
   is_admin: boolean;
-  pode_cadastrar_eventos: boolean;
   device_token?: string | null;
 
   // Dados estendidos (vindos de joins/funções)
