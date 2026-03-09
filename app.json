@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Agenda Setor",
-    "slug": "agenda-setor",
+    "slug": "agenda-setor-vespasiano",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./src/presentation/assets/icon.png",
