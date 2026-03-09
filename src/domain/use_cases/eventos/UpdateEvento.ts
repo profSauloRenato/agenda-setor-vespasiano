@@ -20,7 +20,7 @@ export class UpdateEvento implements IUpdateEvento {
     currentUser: IUsuario,
     data: UpdateEventoParams,
   ): Promise<IEvento> {
-    if (!currentUser.is_admin && !currentUser.pode_cadastrar_eventos) {
+    if (!currentUser.is_admin) {
       throw new UserNotAuthorizedError(
         "Você não tem permissão para editar eventos.",
       );

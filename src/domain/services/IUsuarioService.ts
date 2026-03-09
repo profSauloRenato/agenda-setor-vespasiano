@@ -24,8 +24,7 @@ export interface IUsuarioService {
   getUsuarios(): Promise<IUsuario[]>;
 
   /**
-   * Atualiza os dados básicos de um usuário (nome, localizacao, is_admin,
-   * pode_cadastrar_eventos).
+   * Atualiza os dados básicos de um usuário (nome, localizacao, is_admin).
    */
   updateUsuarioBasico(usuario: IUsuario): Promise<IUsuario>;
 

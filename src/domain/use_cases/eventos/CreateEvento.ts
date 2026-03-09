@@ -55,7 +55,7 @@ export class CreateEvento implements ICreateEvento {
     currentUser: IUsuario,
     data: CreateEventoParams,
   ): Promise<IEvento> {
-    if (!currentUser.is_admin && !currentUser.pode_cadastrar_eventos) {
+    if (!currentUser.is_admin) {
       throw new UserNotAuthorizedError(
         "Você não tem permissão para criar eventos.",
       );
