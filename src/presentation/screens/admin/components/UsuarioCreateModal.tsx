@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   picker: {
-    height: 50,
+    height: 54,
     width: "100%",
     color: "#333",
   },

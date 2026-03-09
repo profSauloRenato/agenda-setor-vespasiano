@@ -158,13 +158,63 @@ const CompromissoCard: React.FC<{
 // -------------------------------------------
 // CARROSSEL DE VERSÍCULO E MENSAGENS
 // -------------------------------------------
+
+const TextoCard: React.FC<{
+  texto: string;
+  labelColor: string;
+  bgColor: string;
+  limiteLinhas: number;
+  expandido: boolean;
+  onExpandir: () => void;
+  onRecolher: () => void;
+}> = ({ texto, labelColor, bgColor, limiteLinhas, expandido, onExpandir, onRecolher }) => {
+  // const [expandido, setExpandido] = useState(false);
+  const [truncado, setTruncado] = useState(false);
+  const [medido, setMedido] = useState(false);
+
+  return (
+    <View>
+      <Text
+        style={stylesCarrossel.texto}
+        numberOfLines={!expandido ? limiteLinhas : undefined}
+        onTextLayout={(e) => {
+          if (!medido) {
+            setMedido(true);
+            setTruncado(e.nativeEvent.lines.length >= limiteLinhas);
+          }
+        }}
+      >
+        {texto}
+      </Text>
+      {truncado && !expandido && (
+        <View style={stylesCarrossel.lerMaisRow}>
+          <Text style={[stylesCarrossel.lerMaisInline, { color: labelColor }]}
+            onPress={onExpandir}>Ler mais ▼</Text>
+        </View>
+      )}
+      {!truncado && (
+        // Placeholder com mesma altura do "Ler mais" para manter altura consistente
+        <View style={{ height: 44 }} />
+      )}
+      {expandido && (
+        <View style={stylesCarrossel.lerMaisRow}>
+          <Text style={[stylesCarrossel.lerMaisInline, { color: labelColor }]}
+            onPress={onRecolher}>Recolher ▲</Text>
+        </View>
+      )}
+    </View>
+  );
+};
+
 const CarrosselCards: React.FC<{
   versiculo: IVersiculo | null;
   mensagens: IMensagemAdmin[];
 }> = ({ versiculo, mensagens }) => {
   const [indiceAtual, setIndiceAtual] = useState(0);
   const [expandido, setExpandido] = useState(false);
-  const [textoTruncado, setTextoTruncado] = useState(false);
+  const [truncado, setTruncado] = useState(false);
+  const [medido, setMedido] = useState(false);
+
 
   const cards = React.useMemo(() => {
     const lista: Array<{ tipo: "versiculo" | "mensagem"; dados: any }> = [];
@@ -173,17 +223,20 @@ const CarrosselCards: React.FC<{
     return lista;
   }, [versiculo, mensagens]);
 
+  // Rotação automática — pausa quando expandido
   useEffect(() => {
     if (cards.length <= 1 || expandido) return;
     const timer = setInterval(() => {
       setIndiceAtual((prev) => (prev + 1) % cards.length);
     }, 7000);
     return () => clearInterval(timer);
-  }, [cards.length, expandido]);
+  }, [cards.length, expandido, indiceAtual]);
 
+  // Reset ao trocar card
   useEffect(() => {
     setExpandido(false);
-    setTextoTruncado(false);
+    setTruncado(false);
+    setMedido(false);
   }, [indiceAtual]);
 
   if (cards.length === 0) return null;
@@ -198,79 +251,65 @@ const CarrosselCards: React.FC<{
 
   return (
     <View style={[stylesCarrossel.container, { backgroundColor: bgColor }]}>
-      <Text style={[stylesCarrossel.label, { color: labelColor }]}>
-        {isMensagem ? `📢 ${card.dados.titulo}` : "📖 Versículo do Dia"}
-      </Text>
-      <Text
-        style={stylesCarrossel.texto}
-        numberOfLines={expandido ? undefined : LIMITE_LINHAS}
-        onTextLayout={(e) => {
-          if (!expandido) setTextoTruncado(e.nativeEvent.lines.length >= LIMITE_LINHAS);
-        }}
-      >
-        {texto}
-      </Text>
-      {!isMensagem && (
-        <Text style={[stylesCarrossel.referencia, { color: labelColor }]}>
-          — {card.dados.referencia}
+
+      <View style={stylesCarrossel.labelRow}>
+        <Text style={[stylesCarrossel.label, { color: labelColor }]}>
+          {isMensagem ? `📢 ${card.dados.titulo}` : "📖 Versículo do Dia"}
         </Text>
-      )}
-      <View style={stylesCarrossel.rodape}>
-        {cards.length > 1 && !expandido ? (
-          <View style={stylesCarrossel.navegacao}>
-            <TouchableOpacity
-              onPress={() =>
-                setIndiceAtual((prev) => (prev - 1 + cards.length) % cards.length)
-              }
-            >
-              <Text style={stylesCarrossel.seta}>‹</Text>
-            </TouchableOpacity>
-            <View style={stylesCarrossel.dots}>
-              {cards.map((c, i) => (
-                <View
-                  key={i}
-                  style={[
-                    stylesCarrossel.dot,
-                    i === indiceAtual && stylesCarrossel.dotAtivo,
-                    c.tipo === "mensagem" && {
-                      backgroundColor:
-                        i === indiceAtual ? "#FF6B6B" : "rgba(255,107,107,0.4)",
-                    },
-                  ]}
-                />
-              ))}
-            </View>
-            {textoTruncado ? (
-              <TouchableOpacity onPress={() => setExpandido(true)}>
-                <Text style={[stylesCarrossel.lerMais, { color: labelColor }]}>
-                  Ler mais ▼
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                onPress={() =>
-                  setIndiceAtual((prev) => (prev + 1) % cards.length)
-                }
-              >
-                <Text style={stylesCarrossel.seta}>›</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        ) : (
-          textoTruncado && (
-            <TouchableOpacity onPress={() => setExpandido(false)}>
-              <Text
-                style={[
-                  stylesCarrossel.lerMais,
-                  { color: labelColor, textAlign: "right" },
-                ]}
-              >
-                Recolher ▲
-              </Text>
-            </TouchableOpacity>
-          )
+        {!isMensagem && (
+          <Text style={[stylesCarrossel.labelReferencia, { color: labelColor }]}>
+            {card.dados.referencia}
+          </Text>
         )}
       </View>
+
+      <TextoCard
+        key={indiceAtual}
+        texto={texto}
+        labelColor={labelColor}
+        bgColor={bgColor}
+        limiteLinhas={2}
+        expandido={expandido}
+        onExpandir={() => setExpandido(true)}
+        onRecolher={() => setExpandido(false)}
+      />
+
+      {/* Navegação (setas + dots) — apenas quando há mais de 1 card */}
+      {cards.length > 1 && !expandido && (
+        <View style={stylesCarrossel.navegacao}>
+          <TouchableOpacity
+            onPress={() =>
+              setIndiceAtual((prev) => (prev - 1 + cards.length) % cards.length)
+            }
+          >
+            <Text style={stylesCarrossel.seta}>‹</Text>
+          </TouchableOpacity>
+
+          <View style={stylesCarrossel.dots}>
+            {cards.map((c, i) => (
+              <View
+                key={i}
+                style={[
+                  stylesCarrossel.dot,
+                  i === indiceAtual && stylesCarrossel.dotAtivo,
+                  c.tipo === "mensagem" && {
+                    backgroundColor:
+                      i === indiceAtual ? "#FF6B6B" : "rgba(255,107,107,0.4)",
+                  },
+                ]}
+              />
+            ))}
+          </View>
+
+          <TouchableOpacity
+            onPress={() =>
+              setIndiceAtual((prev) => (prev + 1) % cards.length)
+            }
+          >
+            <Text style={stylesCarrossel.seta}>›</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 };
@@ -280,13 +319,22 @@ const stylesCarrossel = StyleSheet.create({
     margin: 15,
     borderRadius: 12,
     padding: 15,
-    minHeight: 164,
+    minHeight: 118,
+  },
+  labelRow: {
+    flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
   },
   label: {
     fontSize: 12,
     fontWeight: "600",
-    marginBottom: 8,
+  },
+  labelReferencia: {
+    fontSize: 12,
+    fontWeight: "600",
+    fontStyle: "italic",
   },
   texto: {
     fontSize: 15,
@@ -294,20 +342,26 @@ const stylesCarrossel = StyleSheet.create({
     fontStyle: "italic",
     lineHeight: 22,
   },
+  lerMaisRow: {
+    alignItems: "flex-end",
+    marginTop: 2,
+  },
+  lerMaisInline: {
+    fontSize: 12,
+    fontWeight: "700",
+    fontStyle: "normal",
+  },
   referencia: {
     fontSize: 13,
     marginTop: 8,
     textAlign: "right",
     fontWeight: "600",
   },
-  rodape: {
-    marginTop: 10,
-  },
   navegacao: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 6,
+    marginTop: 10,
   },
   seta: {
     color: "#BEE5EB",
@@ -327,12 +381,6 @@ const stylesCarrossel = StyleSheet.create({
   },
   dotAtivo: {
     backgroundColor: "#fff",
-  },
-  lerMais: {
-    fontSize: 12,
-    fontWeight: "600",
-    textAlign: "right",
-    marginTop: 4,
   },
 });
 
