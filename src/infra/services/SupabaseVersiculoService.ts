@@ -7,7 +7,9 @@ export class SupabaseVersiculoService {
   constructor(private supabase: SupabaseClient) {}
 
   async getVersiculoHoje(): Promise<IVersiculo | null> {
-    const hoje = new Date().toISOString().split("T")[0];
+    const agora = new Date();
+    const hoje = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}-${String(agora.getDate()).padStart(2, "0")}`;
+    
     const { data, error } = await this.supabase
       .from("versiculo")
       .select("*")

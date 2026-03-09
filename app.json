@@ -22,7 +22,7 @@
     "android": {
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "foregroundImage": "./src/presentation/assets/adaptive-icon.png",
+        "foregroundImage": "./src/presentation/assets/icon.png",
         "backgroundColor": "#0A3D62"
       },
       "edgeToEdgeEnabled": true,
