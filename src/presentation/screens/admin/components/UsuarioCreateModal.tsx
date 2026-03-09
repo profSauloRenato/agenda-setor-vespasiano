@@ -299,6 +299,7 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 10,
     fontSize: 16,
+    color: "#333",
   },
   pickerContainer: {
     borderWidth: 1,
@@ -309,6 +310,7 @@ const styles = StyleSheet.create({
   picker: {
     height: 50,
     width: "100%",
+    color: "#333",
   },
   checkboxContainer: {
     flexDirection: "row",

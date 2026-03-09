@@ -247,6 +247,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: "#17A2B8",
     paddingVertical: 4,
+    color: "#333",
   },
   divider: {
     height: 1,

@@ -135,6 +135,7 @@ const LocalizacaoEditModal: React.FC<LocalizacaoEditModalProps> = ({
                     selectedValue={sedeId}
                     onValueChange={(value) => setSedeId(value)}
                     enabled={!isSaving}
+                    style={{ color: "#333" }}
                   >
                     <Picker.Item label="Nenhuma (definir depois)..." value={null} color="#999" />
                     {congregacaoOptions.map((loc) => (
@@ -153,6 +154,7 @@ const LocalizacaoEditModal: React.FC<LocalizacaoEditModalProps> = ({
                     selectedValue={parentId}
                     onValueChange={(value) => setParentId(value)}
                     enabled={!isSaving}
+                    style={{ color: "#333" }}
                   >
                     <Picker.Item label={`Selecione ${PARENT_LABEL[localizacao.tipo]}...`} value={null} color="#999" />
                     {parentOptions.map((loc) => (
@@ -252,6 +254,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: "#F9F9F9",
     fontSize: 15,
+    color: "#333",
   },
   pickerContainer: {
     borderWidth: 1,

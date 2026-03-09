@@ -134,7 +134,7 @@ const SeletorLocalizacao: React.FC<{
       {/* Regional */}
       <Text style={seletorStyles.nivelLabel}>Regional</Text>
       <View style={seletorStyles.pickerBox}>
-        <Picker selectedValue={regionalId ?? ""} onValueChange={handleRegional}>
+        <Picker selectedValue={regionalId ?? ""} onValueChange={handleRegional} style={{ color: "#333" }}>
           <Picker.Item label="Selecione a Regional..." value="" color="#999" />
           {regionais.map((r) => (
             <Picker.Item key={r.id} label={r.nome} value={r.id} />
@@ -147,7 +147,7 @@ const SeletorLocalizacao: React.FC<{
         <>
           <Text style={seletorStyles.nivelLabel}>Administração</Text>
           <View style={seletorStyles.pickerBox}>
-            <Picker selectedValue={administracaoId ?? ""} onValueChange={handleAdministracao}>
+            <Picker selectedValue={administracaoId ?? ""} onValueChange={handleAdministracao} style={{ color: "#333" }}>
               <Picker.Item label="Selecione a Administração..." value="" color="#999" />
               {administracoes.map((a) => (
                 <Picker.Item key={a.id} label={a.nome} value={a.id} />
@@ -162,7 +162,7 @@ const SeletorLocalizacao: React.FC<{
         <>
           <Text style={seletorStyles.nivelLabel}>Setor</Text>
           <View style={seletorStyles.pickerBox}>
-            <Picker selectedValue={setorId ?? ""} onValueChange={handleSetor}>
+            <Picker selectedValue={setorId ?? ""} onValueChange={handleSetor} style={{ color: "#333" }}>
               <Picker.Item label="Selecione o Setor..." value="" color="#999" />
               {setores.map((s) => (
                 <Picker.Item key={s.id} label={s.nome} value={s.id} />
@@ -177,7 +177,7 @@ const SeletorLocalizacao: React.FC<{
         <>
           <Text style={seletorStyles.nivelLabel}>Congregação</Text>
           <View style={[seletorStyles.pickerBox, seletorStyles.pickerBoxDestaque]}>
-            <Picker selectedValue={localizacaoId ?? ""} onValueChange={handleCongregacao}>
+            <Picker selectedValue={localizacaoId ?? ""} onValueChange={handleCongregacao} style={{ color: "#333" }}>
               <Picker.Item label="Selecione a Congregação..." value="" color="#999" />
               {congregacoes.map((c) => (
                 <Picker.Item key={c.id} label={c.nome} value={c.id} />
@@ -476,6 +476,7 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
               selectedValue={form.modelo_id ?? ""}
               onValueChange={(v) => setForm((p) => ({ ...p, modelo_id: v || null }))}
               mode="dropdown"
+              style={{ color: "#333" }}
             >
               <Picker.Item label="Selecione o modelo..." value="" color="#999" />
               {modelosEventos.length > 0 && (
@@ -662,6 +663,7 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
               <Picker
                 selectedValue={form.recorrencia_tipo ?? ""}
                 onValueChange={(v) => setForm((p) => ({ ...p, recorrencia_tipo: (v || null) as RecorrenciaTipo | null }))}
+                style={{ color: "#333" }}
               >
                 <Picker.Item label="Selecione..." value="" color="#999" />
                 <Picker.Item label="Semanal (toda semana)" value="semanal" />
@@ -692,6 +694,7 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
                   <Picker
                     selectedValue={form.recorrencia_dia_semana ?? ""}
                     onValueChange={(v) => setForm((p) => ({ ...p, recorrencia_dia_semana: v === "" ? null : Number(v) }))}
+                    style={{ color: "#333" }}
                   >
                     <Picker.Item label="Selecione..." value="" color="#999" />
                     {DIAS_SEMANA.map((dia) => (
@@ -709,6 +712,7 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
                   <Picker
                     selectedValue={form.recorrencia_semana_do_mes ?? ""}
                     onValueChange={(v) => setForm((p) => ({ ...p, recorrencia_semana_do_mes: v === "" ? null : Number(v) }))}
+                    style={{ color: "#333" }}
                   >
                     <Picker.Item label="Selecione..." value="" color="#999" />
                     {SEMANAS_DO_MES.map((s) => (
@@ -722,6 +726,7 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
                   <Picker
                     selectedValue={form.recorrencia_dia_semana ?? ""}
                     onValueChange={(v) => setForm((p) => ({ ...p, recorrencia_dia_semana: v === "" ? null : Number(v) }))}
+                    style={{ color: "#333" }}
                   >
                     <Picker.Item label="Selecione..." value="" color="#999" />
                     {DIAS_SEMANA.map((dia) => (
@@ -875,6 +880,7 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
               <Picker
                 selectedValue={alerta.horas_antes}
                 onValueChange={(v) => updateAlerta(index, Number(v))}
+                style={{ color: "#333" }}
               >
                 {OPCOES_ALERTA.map((op) => (
                   <Picker.Item key={op.value} label={op.label} value={op.value} />
@@ -953,6 +959,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 15,
+    color: "#333",
   },
   textArea: { height: 80, textAlignVertical: "top" },
   pickerContainer: {

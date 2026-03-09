@@ -173,6 +173,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: '#DDD',
+    color: "#333",
   },
   button: {
     width: '100%',

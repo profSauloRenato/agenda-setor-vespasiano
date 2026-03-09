@@ -464,6 +464,7 @@ const VersiculosManagerScreen: React.FC = () => {
                 <Picker
                   selectedValue={mLocalizacaoId}
                   onValueChange={(v) => setMLocalizacaoId(v)}
+                  style={{ color: "#333" }}
                 >
                   <Picker.Item label="Todos (sem filtro)" value={null} />
                   {localizacoesDisponiveis.map((loc) => (
@@ -570,7 +571,7 @@ const styles = StyleSheet.create({
   modalBox: { width: "90%", maxHeight: "85%", backgroundColor: "#fff", borderRadius: 15, padding: 20 },
   modalTitle: { fontSize: 20, fontWeight: "bold", color: "#0A3D62", marginBottom: 15 },
   label: { fontSize: 14, fontWeight: "600", color: "#343A40", marginBottom: 5, marginTop: 10 },
-  input: { borderWidth: 1, borderColor: "#CED4DA", borderRadius: 8, padding: 10, fontSize: 14, backgroundColor: "#fff" },
+  input: { borderWidth: 1, borderColor: "#CED4DA", borderRadius: 8, padding: 10, fontSize: 14, backgroundColor: "#fff", color: "#333" },
   textArea: { height: 100, textAlignVertical: "top" },
   dateButton: { borderWidth: 1, borderColor: "#CED4DA", borderRadius: 8, padding: 12, backgroundColor: "#fff" },
   dateButtonText: { fontSize: 14, color: "#333" },

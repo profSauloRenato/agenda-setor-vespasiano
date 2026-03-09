@@ -200,6 +200,7 @@ const styles = StyleSheet.create({
         padding: 10,
         marginBottom: 15,
         fontSize: 16,
+        color: "#333",
     },
     textArea: {
         height: 80,

@@ -179,6 +179,7 @@ const ModalFiltros: React.FC<{
               selectedValue={filtros.categoriaModelo}
               onValueChange={(v) => { set("categoriaModelo", v); set("modeloId", ""); }}
               mode="dropdown"
+              style={{ color: "#333" }}
             >
               <Picker.Item label="Todos os tipos" value="" />
               <Picker.Item label="Eventos" value="evento" />
@@ -189,7 +190,7 @@ const ModalFiltros: React.FC<{
           {/* NOME */}
           <Text style={styles.secaoTitulo}>Nome do evento / reunião</Text>
           <View style={styles.pickerBox}>
-            <Picker selectedValue={filtros.modeloId} onValueChange={(v) => set("modeloId", v)} mode="dropdown">
+            <Picker selectedValue={filtros.modeloId} onValueChange={(v) => set("modeloId", v)} mode="dropdown" style={{ color: "#333" }}>
               <Picker.Item label="Todos" value="" />
               {(!filtros.categoriaModelo || filtros.categoriaModelo === "evento") &&
                 modelosEventos.map((m) => <Picker.Item key={m.id} label={m.nome} value={m.id} />)}
@@ -201,7 +202,7 @@ const ModalFiltros: React.FC<{
           {/* PERÍODO */}
           <Text style={styles.secaoTitulo}>Período</Text>
           <View style={styles.pickerBox}>
-            <Picker selectedValue={filtros.periodoValue} onValueChange={(v) => set("periodoValue", v)} mode="dropdown">
+            <Picker selectedValue={filtros.periodoValue} onValueChange={(v) => set("periodoValue", v)} mode="dropdown" style={{ color: "#333" }}>
               <Picker.Item label="Qualquer período" value="" />
               {PERIODOS.map((p) => <Picker.Item key={p.value} label={p.label} value={p.value} />)}
             </Picker>
@@ -216,6 +217,7 @@ const ModalFiltros: React.FC<{
               selectedValue={filtros.regionalId}
               onValueChange={(v) => { set("regionalId", v); set("administracaoId", ""); set("setorId", ""); set("localizacaoId", ""); }}
               mode="dropdown"
+              style={{ color: "#333" }}
             >
               <Picker.Item label="Todas as Regionais" value="" />
               {regionais.map((r) => <Picker.Item key={r.id} label={r.nome} value={r.id} />)}
@@ -230,6 +232,7 @@ const ModalFiltros: React.FC<{
                   selectedValue={filtros.administracaoId}
                   onValueChange={(v) => { set("administracaoId", v); set("setorId", ""); set("localizacaoId", ""); }}
                   mode="dropdown"
+                  style={{ color: "#333" }}
                 >
                   <Picker.Item label="Todas as Administrações" value="" />
                   {administracoes.map((a) => <Picker.Item key={a.id} label={a.nome} value={a.id} />)}
@@ -246,6 +249,7 @@ const ModalFiltros: React.FC<{
                   selectedValue={filtros.setorId}
                   onValueChange={(v) => { set("setorId", v); set("localizacaoId", ""); }}
                   mode="dropdown"
+                  style={{ color: "#333" }}
                 >
                   <Picker.Item label="Todos os Setores" value="" />
                   {setores.map((s) => <Picker.Item key={s.id} label={s.nome} value={s.id} />)}
@@ -262,6 +266,7 @@ const ModalFiltros: React.FC<{
                   selectedValue={filtros.localizacaoId}
                   onValueChange={(v) => set("localizacaoId", v)}
                   mode="dropdown"
+                  style={{ color: "#333" }}
                 >
                   <Picker.Item label="Todas as Congregações do Setor" value="" />
                   {congregacoes.map((c) => <Picker.Item key={c.id} label={c.nome} value={c.id} />)}

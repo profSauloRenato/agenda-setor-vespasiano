@@ -32,7 +32,8 @@
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
         "android.permission.POST_NOTIFICATIONS"
-      ]
+      ],
+      "userInterfaceStyle": "light"
     },
     "web": {
       "favicon": "./src/presentation/assets/favicon.png"

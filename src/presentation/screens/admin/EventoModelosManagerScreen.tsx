@@ -562,7 +562,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    color: "#222",
+    color: "#333",
   },
   categoriaRow: {
     flexDirection: "row",
