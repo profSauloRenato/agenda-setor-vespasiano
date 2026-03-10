@@ -1,7 +1,4 @@
 // src/presentation/context/AuthContext.tsx
-// Nenhuma alteração necessária — deve_trocar_senha já faz parte de IUsuario
-// e é retornado pelo getUsuarioLogado (que lê do banco).
-// O campo fica disponível via: const { user } = useAuth()  →  user.deve_trocar_senha
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../../config/supabaseClient';
@@ -11,6 +8,8 @@ import { IUsuario } from '../../domain/models/IUsuario';
 interface AuthContextType {
   user: IUsuario | null;
   isLoading: boolean;
+  isPasswordRecovery: boolean;
+  clearPasswordRecovery: () => void;
   signIn: (usuario: IUsuario) => void;
   signOut: () => void;
   refreshUser: () => Promise<void>;
@@ -21,6 +20,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<IUsuario | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   const signIn = async (usuario: IUsuario) => {
     setUser(usuario);
@@ -55,6 +55,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const clearPasswordRecovery = () => setIsPasswordRecovery(false);
+
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -74,13 +76,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (event === 'SIGNED_OUT') {
         setUser(null);
       }
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsPasswordRecovery(true);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, signIn, signOut, refreshUser }}>
+    <AuthContext.Provider value={{ user, isLoading, isPasswordRecovery, clearPasswordRecovery, signIn, signOut, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

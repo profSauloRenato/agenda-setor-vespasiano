@@ -2,7 +2,7 @@
 
 import { ParamListBase, RouteProp } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -56,26 +56,6 @@ const ResetPasswordScreen: React.FC<{ onDone: () => void }> = ({ onDone }) => {
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [senhaVisivel, setSenhaVisivel] = useState(false);
   const [salvando, setSalvando] = useState(false);
-  const [tokenValido, setTokenValido] = useState(false);
-  const [verificando, setVerificando] = useState(true);
-
-  useEffect(() => {
-    // O Supabase detecta o token do deep link automaticamente e
-    // dispara o evento PASSWORD_RECOVERY via onAuthStateChange
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setTokenValido(true);
-        setVerificando(false);
-      }
-    });
-
-    const timeout = setTimeout(() => setVerificando(false), 5000);
-
-    return () => {
-      subscription.unsubscribe();
-      clearTimeout(timeout);
-    };
-  }, []);
 
   const handleSalvar = async () => {
     if (!novaSenha || !confirmarSenha) {
@@ -98,7 +78,7 @@ const ResetPasswordScreen: React.FC<{ onDone: () => void }> = ({ onDone }) => {
 
       Alert.alert(
         "✅ Senha redefinida",
-        "Sua senha foi atualizada com sucesso! Faça login com a nova senha.",
+        "Sua senha foi atualizada! Faça login com a nova senha.",
         [{ text: "Ir para o login", onPress: onDone }],
       );
     } catch (e) {
@@ -107,30 +87,6 @@ const ResetPasswordScreen: React.FC<{ onDone: () => void }> = ({ onDone }) => {
       setSalvando(false);
     }
   };
-
-  if (verificando) {
-    return (
-      <View style={resetStyles.center}>
-        <ActivityIndicator size="large" color="#0A3D62" />
-        <Text style={resetStyles.verificandoText}>Verificando link...</Text>
-      </View>
-    );
-  }
-
-  if (!tokenValido) {
-    return (
-      <View style={resetStyles.center}>
-        <Feather name="alert-circle" size={48} color="#DC3545" />
-        <Text style={resetStyles.erroTitle}>Link inválido ou expirado</Text>
-        <Text style={resetStyles.erroSub}>
-          Solicite um novo link de recuperação no app.
-        </Text>
-        <TouchableOpacity style={resetStyles.btnVoltar} onPress={onDone}>
-          <Text style={resetStyles.btnVoltarText}>Ir para o login</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
 
   return (
     <KeyboardAvoidingView
@@ -189,12 +145,6 @@ const ResetPasswordScreen: React.FC<{ onDone: () => void }> = ({ onDone }) => {
 };
 
 const resetStyles = StyleSheet.create({
-  center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 30, backgroundColor: "#F8F9FA" },
-  verificandoText: { marginTop: 16, fontSize: 15, color: "#6C757D" },
-  erroTitle: { fontSize: 20, fontWeight: "700", color: "#DC3545", marginTop: 16, textAlign: "center" },
-  erroSub: { fontSize: 14, color: "#6C757D", marginTop: 8, textAlign: "center", lineHeight: 20 },
-  btnVoltar: { marginTop: 24, backgroundColor: "#0A3D62", borderRadius: 8, paddingVertical: 12, paddingHorizontal: 32 },
-  btnVoltarText: { color: "#fff", fontWeight: "700", fontSize: 15 },
   content: { padding: 24, paddingTop: 60 },
   iconContainer: { alignItems: "center", marginBottom: 16 },
   title: { fontSize: 24, fontWeight: "700", color: "#0A3D62", textAlign: "center" },
@@ -292,21 +242,7 @@ const AuthStack = () => (
 // NAVIGATOR PRINCIPAL
 // ------------------------------------------
 export const AppNavigator = () => {
-  const { user, isLoading } = useAuth();
-  const [resetPasswordRoute, setResetPasswordRoute] = useState(false);
-
-  useEffect(() => {
-    // Detecta o evento PASSWORD_RECOVERY do Supabase.
-    // O cliente Supabase já processa o token do deep link automaticamente
-    // quando o app é aberto via scheme — não precisamos parsear a URL manualmente.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setResetPasswordRoute(true);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const { user, isLoading, isPasswordRecovery, clearPasswordRecovery } = useAuth();
 
   if (isLoading) {
     return (
@@ -316,10 +252,9 @@ export const AppNavigator = () => {
     );
   }
 
-  if (resetPasswordRoute) {
-    return (
-      <ResetPasswordScreen onDone={() => setResetPasswordRoute(false)} />
-    );
+  // Deep link de recuperação de senha — tem prioridade sobre tudo
+  if (isPasswordRecovery) {
+    return <ResetPasswordScreen onDone={clearPasswordRecovery} />;
   }
 
   return (
