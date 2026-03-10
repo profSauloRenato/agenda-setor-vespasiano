@@ -46,7 +46,7 @@ export interface LocalizacoesManagerScreenProps {
   localizacaoUseCases: LocalizacaoUseCases;
 }
 
-// ─── ITEM DA LISTA ───────────────────────────────────────────────────────────
+// ─── ITEM DA LISTA — CONGREGAÇÃO ─────────────────────────────────────────────
 const CongregacaoItem: React.FC<{
   localizacao: ILocalizacaoViewModelNode;
   hierarquia: string;
@@ -63,6 +63,7 @@ const CongregacaoItem: React.FC<{
   </TouchableOpacity>
 );
 
+// ─── ITEM DA LISTA — OUTROS TIPOS ────────────────────────────────────────────
 const LocalizacaoItem: React.FC<{
   localizacao: ILocalizacaoViewModelNode;
   onDelete: (id: string) => Promise<boolean>;
@@ -122,7 +123,6 @@ const LocalizacoesManagerScreenComponent: React.FC<LocalizacoesManagerScreenProp
     }
   };
   const pluralizedLocationType = pluralizeLocationType(locationType);
-
   const btnNovoLabel = locationType === "Setor" ? "Novo" : "Nova";
 
   const localizacaoUseCases = useMemo(() => injectedUseCases, [injectedUseCases]);
@@ -138,16 +138,16 @@ const LocalizacoesManagerScreenComponent: React.FC<LocalizacoesManagerScreenProp
   } = useLocalizacoesViewModel(localizacaoUseCases);
 
   // ── Filtros ──────────────────────────────────────────────────────────────
+  const [filtrosExpandido, setFiltrosExpandido] = useState(false);
   const [filtroRegionalId, setFiltroRegionalId] = useState<string>("todos");
   const [filtroAdminId, setFiltroAdminId] = useState<string>("todos");
   const [filtroSetorId, setFiltroSetorId] = useState<string>("todos");
 
-  // Opções derivadas das localizações carregadas
-  const regionais = useMemo(() =>
-    allLocalizacoes.filter(l => l.tipo === "Regional").sort((a, b) => a.nome.localeCompare(b.nome)),
+  // Opções derivadas
+  const regionais = useMemo(
+    () => allLocalizacoes.filter(l => l.tipo === "Regional").sort((a, b) => a.nome.localeCompare(b.nome)),
     [allLocalizacoes]
   );
-
   const administracoes = useMemo(() => {
     const base = allLocalizacoes.filter(l => l.tipo === "Administração");
     return (filtroRegionalId === "todos"
@@ -166,7 +166,6 @@ const LocalizacoesManagerScreenComponent: React.FC<LocalizacoesManagerScreenProp
     return base.sort((a, b) => a.nome.localeCompare(b.nome));
   }, [allLocalizacoes, filtroAdminId, filtroRegionalId, administracoes]);
 
-  // Reseta filtros dependentes quando pai muda
   const handleRegionalChange = (val: string) => {
     setFiltroRegionalId(val);
     setFiltroAdminId("todos");
@@ -174,6 +173,14 @@ const LocalizacoesManagerScreenComponent: React.FC<LocalizacoesManagerScreenProp
   };
   const handleAdminChange = (val: string) => {
     setFiltroAdminId(val);
+    setFiltroSetorId("todos");
+  };
+
+  const filtrosAtivos = [filtroRegionalId, filtroAdminId, filtroSetorId].filter(f => f !== "todos").length;
+
+  const limparFiltros = () => {
+    setFiltroRegionalId("todos");
+    setFiltroAdminId("todos");
     setFiltroSetorId("todos");
   };
 
@@ -210,8 +217,6 @@ const LocalizacoesManagerScreenComponent: React.FC<LocalizacoesManagerScreenProp
     return `${regional.nome} › ${admin.nome} › ${setor.nome}`;
   };
 
-  const filtrosAtivos = [filtroRegionalId, filtroAdminId, filtroSetorId].filter(f => f !== "todos").length;
-
   // ── Modais ────────────────────────────────────────────────────────────────
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -237,9 +242,10 @@ const LocalizacoesManagerScreenComponent: React.FC<LocalizacoesManagerScreenProp
   }) => {
     await handleCreateLocalizacao({
       nome: data.nome, tipo: locationType, parent_id: data.parent_id,
-      sede_congregacao_id: null, endereco_rua: data.endereco_rua, endereco_numero: data.endereco_numero,
-      endereco_bairro: data.endereco_bairro, endereco_cidade: data.endereco_cidade,
-      endereco_estado: data.endereco_estado, endereco_cep: data.endereco_cep
+      sede_congregacao_id: null, endereco_rua: data.endereco_rua,
+      endereco_numero: data.endereco_numero, endereco_bairro: data.endereco_bairro,
+      endereco_cidade: data.endereco_cidade, endereco_estado: data.endereco_estado,
+      endereco_cep: data.endereco_cep,
     });
     setIsCreateModalVisible(false);
   };
@@ -269,56 +275,84 @@ const LocalizacoesManagerScreenComponent: React.FC<LocalizacoesManagerScreenProp
         </TouchableOpacity>
       </View>
 
-      {/* FILTROS — apenas para Congregação */}
+      {/* FILTROS — apenas para Congregação, colapsável */}
       {isCongregacao && (
         <View style={styles.filtrosBox}>
-          <View style={styles.filtrosHeader}>
+          <TouchableOpacity
+            style={styles.filtrosHeader}
+            onPress={() => setFiltrosExpandido(prev => !prev)}
+            activeOpacity={0.7}
+          >
             <Feather name="filter" size={14} color="#17A2B8" />
             <Text style={styles.filtrosLabel}>Filtros</Text>
             {filtrosAtivos > 0 && (
-              <TouchableOpacity onPress={() => { setFiltroRegionalId("todos"); setFiltroAdminId("todos"); setFiltroSetorId("todos"); }}>
+              <TouchableOpacity onPress={limparFiltros}>
                 <Text style={styles.limparFiltros}>Limpar ({filtrosAtivos})</Text>
               </TouchableOpacity>
             )}
-          </View>
+            <Feather
+              name={filtrosExpandido ? "chevron-up" : "chevron-down"}
+              size={16}
+              color="#17A2B8"
+              style={{ marginLeft: 20 }}
+            />
+          </TouchableOpacity>
 
-          {/* Regional */}
-          <View style={styles.pickerRow}>
-            <Text style={styles.pickerLabel}>Regional</Text>
-            <View style={styles.pickerWrap}>
-              <Picker selectedValue={filtroRegionalId} onValueChange={handleRegionalChange}
-                style={styles.picker} dropdownIconColor="#17A2B8">
-                <Picker.Item label="Todas" value="todos" />
-                {regionais.map(r => <Picker.Item key={r.id} label={r.nome} value={r.id} />)}
-              </Picker>
-            </View>
-          </View>
+          {filtrosExpandido && (
+            <View style={styles.filtrosConteudo}>
 
-          {/* Administração */}
-          <View style={styles.pickerRow}>
-            <Text style={styles.pickerLabel}>Administração</Text>
-            <View style={styles.pickerWrap}>
-              <Picker selectedValue={filtroAdminId} onValueChange={handleAdminChange}
-                style={styles.picker} dropdownIconColor="#17A2B8"
-                enabled={administracoes.length > 0}>
-                <Picker.Item label="Todas" value="todos" />
-                {administracoes.map(a => <Picker.Item key={a.id} label={a.nome} value={a.id} />)}
-              </Picker>
-            </View>
-          </View>
+              {/* Regional */}
+              <View style={styles.pickerRow}>
+                <Text style={styles.pickerLabel}>Regional</Text>
+                <View style={styles.pickerWrap}>
+                  <Picker
+                    selectedValue={filtroRegionalId}
+                    onValueChange={handleRegionalChange}
+                    style={styles.picker}
+                    dropdownIconColor="#17A2B8"
+                  >
+                    <Picker.Item label="Todas" value="todos" />
+                    {regionais.map(r => <Picker.Item key={r.id} label={r.nome} value={r.id} />)}
+                  </Picker>
+                </View>
+              </View>
 
-          {/* Setor */}
-          <View style={styles.pickerRow}>
-            <Text style={styles.pickerLabel}>Setor</Text>
-            <View style={styles.pickerWrap}>
-              <Picker selectedValue={filtroSetorId} onValueChange={setFiltroSetorId}
-                style={styles.picker} dropdownIconColor="#17A2B8"
-                enabled={setores.length > 0}>
-                <Picker.Item label="Todos" value="todos" />
-                {setores.map(s => <Picker.Item key={s.id} label={s.nome} value={s.id} />)}
-              </Picker>
+              {/* Administração */}
+              <View style={styles.pickerRow}>
+                <Text style={styles.pickerLabel}>Administração</Text>
+                <View style={styles.pickerWrap}>
+                  <Picker
+                    selectedValue={filtroAdminId}
+                    onValueChange={handleAdminChange}
+                    style={styles.picker}
+                    dropdownIconColor="#17A2B8"
+                    enabled={administracoes.length > 0}
+                  >
+                    <Picker.Item label="Todas" value="todos" />
+                    {administracoes.map(a => <Picker.Item key={a.id} label={a.nome} value={a.id} />)}
+                  </Picker>
+                </View>
+              </View>
+
+              {/* Setor */}
+              <View style={styles.pickerRow}>
+                <Text style={styles.pickerLabel}>Setor</Text>
+                <View style={styles.pickerWrap}>
+                  <Picker
+                    selectedValue={filtroSetorId}
+                    onValueChange={setFiltroSetorId}
+                    style={styles.picker}
+                    dropdownIconColor="#17A2B8"
+                    enabled={setores.length > 0}
+                  >
+                    <Picker.Item label="Todos" value="todos" />
+                    {setores.map(s => <Picker.Item key={s.id} label={s.nome} value={s.id} />)}
+                  </Picker>
+                </View>
+              </View>
+
             </View>
-          </View>
+          )}
         </View>
       )}
 
@@ -406,7 +440,14 @@ const LocalizacoesManagerScreenComponent: React.FC<LocalizacoesManagerScreenProp
             `Excluir "${loc.nome}"?\n\n⚠️ Se houver sub-localizações ou usuários associados, a exclusão será bloqueada.`,
             [
               { text: "Cancelar", style: "cancel" },
-              { text: "Excluir", style: "destructive", onPress: () => { handleDeleteLocalizacao(loc.id); setIsDetailsModalVisible(false); } },
+              {
+                text: "Excluir",
+                style: "destructive",
+                onPress: () => {
+                  handleDeleteLocalizacao(loc.id);
+                  setIsDetailsModalVisible(false);
+                },
+              },
             ]
           );
         }}
@@ -456,8 +497,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     marginHorizontal: 15,
     marginTop: 15,
+    marginBottom: 10,
     borderRadius: 12,
-    padding: 14,
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 6,
     elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -468,7 +512,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginBottom: 10,
+    paddingBottom: 8,
   },
   filtrosLabel: {
     fontSize: 13,
@@ -483,10 +527,17 @@ const styles = StyleSheet.create({
     color: "#DC3545",
     fontWeight: "600",
   },
+  filtrosConteudo: {
+    borderTopWidth: 1,
+    borderTopColor: "#F0F4F8",
+    paddingTop: 10,
+    paddingBottom: 8,
+    gap: 8,
+  },
   pickerRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 4,
   },
   pickerLabel: {
     width: 110,

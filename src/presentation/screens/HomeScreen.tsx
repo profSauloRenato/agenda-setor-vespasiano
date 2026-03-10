@@ -555,7 +555,7 @@ const HomeScreen: React.FC = () => {
       {!isLoading && feedProximos.length > 0 && (
         <FlatList
           data={feedProximos}
-          keyExtractor={(item) => `${item.kind}-${item.data.id}`}
+          keyExtractor={(item) => `${item.kind}-${item.data.id}-${item.data.data_inicio}`}
           renderItem={({ item }) => {
             if (item.kind === "evento") {
               return (

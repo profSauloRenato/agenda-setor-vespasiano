@@ -204,7 +204,7 @@ const AgendaScreen: React.FC<{ route?: any }> = ({ route }) => {
     // Dots de eventos
     eventosState.eventos.forEach((evento) => {
       const key = evento.data_inicio.split("T")[0];
-      const cor = getTipoCor(evento.tipo);
+      const cor = getTipoCor(evento.tipo_abrangencia ?? evento.tipo);
       if (!marks[key]) marks[key] = { dots: [] };
       if (!marks[key].dots.some((d: any) => d.color === cor)) {
         marks[key].dots.push({ color: cor });
@@ -344,7 +344,7 @@ const AgendaScreen: React.FC<{ route?: any }> = ({ route }) => {
         <View style={styles.semEventos}>
           <Text style={styles.semEventosText}>Nenhum evento neste dia.</Text>
           <Text style={styles.semEventosHint}>
-            Toque em "+ Compromisso" para adicionar um compromisso pessoal.
+            Toque em " + " para adicionar um compromisso pessoal.
           </Text>
         </View>
       )}
@@ -353,7 +353,7 @@ const AgendaScreen: React.FC<{ route?: any }> = ({ route }) => {
       {!isLoading && feedDoDia.length > 0 && (
         <FlatList
           data={feedDoDia}
-          keyExtractor={(item) => `${item.kind}-${item.data.id}`}
+          keyExtractor={(item) => `${item.kind}-${item.data.id}-${item.data.data_inicio}`}
           renderItem={({ item }) => {
             if (item.kind === "evento") {
               return (

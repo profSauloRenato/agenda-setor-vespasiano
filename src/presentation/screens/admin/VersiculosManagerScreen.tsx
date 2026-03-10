@@ -13,6 +13,8 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  KeyboardAvoidingView,
+  Platform
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useAuth } from "../../context/AuthContext";
@@ -372,7 +374,10 @@ const VersiculosManagerScreen: React.FC = () => {
 
       {/* MODAL VERSÍCULO */}
       <Modal visible={isFormVVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>
               {versiculoToEdit ? "Editar Versículo" : "Novo Versículo"}
@@ -433,7 +438,7 @@ const VersiculosManagerScreen: React.FC = () => {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* MODAL MENSAGEM */}

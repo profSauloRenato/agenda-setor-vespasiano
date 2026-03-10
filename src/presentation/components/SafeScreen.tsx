@@ -9,7 +9,7 @@ interface SafeScreenProps {
 }
 
 const SafeScreen: React.FC<SafeScreenProps> = ({ children, style }) => (
-  <SafeAreaView style={[styles.container, style]} edges={["bottom"]}>
+  <SafeAreaView style={[styles.container, style]} edges={["top", "bottom"]}>
     {children}
   </SafeAreaView>
 );

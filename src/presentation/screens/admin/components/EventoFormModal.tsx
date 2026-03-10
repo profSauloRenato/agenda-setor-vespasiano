@@ -15,6 +15,7 @@ import {
   View,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { ICargo } from "../../../../domain/models/ICargo";
 import { ILocalizacao } from "../../../../domain/models/ILocalizacao";
 import {
@@ -466,316 +467,318 @@ export const EventoFormModal: React.FC<EventoFormModalProps> = ({
 
   return (
     <Modal visible={isVisible} animationType="slide" onRequestClose={onClose}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{isEditing ? "Editar Evento" : "Criar Evento"}</Text>
-        <TouchableOpacity onPress={onClose}>
-          <Text style={styles.headerClose}>✕</Text>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView contentContainerStyle={styles.content}>
-
-        {/* MODELO */}
-        <Text style={styles.sectionTitle}>Selecione a Reunião ou Evento *</Text>
-        {isLoadingModelos ? (
-          <ActivityIndicator color="#17A2B8" style={{ marginVertical: 10 }} />
-        ) : (
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={form.modelo_id ?? ""}
-              onValueChange={(v) => setForm((p) => ({ ...p, modelo_id: v || null }))}
-              mode="dropdown"
-              style={{ color: "#333" }}
-            >
-              <Picker.Item label="Selecione o modelo..." value="" color="#999" />
-              {modelosEventos.length > 0 && <Picker.Item label="── Eventos ──" value="_eventos" enabled={false} color="#AAA" />}
-              {modelosEventos.map((m) => <Picker.Item key={m.id} label={m.nome} value={m.id} />)}
-              {modelosReunioes.length > 0 && <Picker.Item label="── Reuniões ──" value="_reunioes" enabled={false} color="#AAA" />}
-              {modelosReunioes.map((m) => <Picker.Item key={m.id} label={m.nome} value={m.id} />)}
-            </Picker>
-          </View>
-        )}
-
-        {/* DESCRIÇÃO */}
-        <Text style={styles.label}>Descrição (opcional)</Text>
-        <TextInput
-          style={[styles.input, styles.textArea]}
-          value={form.descricao}
-          onChangeText={(v) => setForm((p) => ({ ...p, descricao: v }))}
-          placeholder="Detalhes adicionais sobre a reunião ou evento"
-          multiline
-          numberOfLines={3}
-        />
-
-        {/* LOCAL DO EVENTO */}
-        <Text style={styles.sectionTitle}>Local do Evento *</Text>
-        <Text style={styles.infoText}>Selecione a congregação onde o evento ocorrerá.</Text>
-        <SeletorLocalizacao
-          localizacoes={localizacoesDisponiveis}
-          localizacaoId={form.localizacao_id}
-          onChange={(id) => setForm((p) => ({ ...p, localizacao_id: id }))}
-        />
-
-        {/* ABRANGÊNCIA */}
-        <Text style={styles.sectionTitle}>Abrangência *</Text>
-        <Text style={styles.infoText}>
-          Quem poderá ver este evento? Selecione o nível hierárquico: uma congregação específica, um setor, uma administração ou toda a regional.
-        </Text>
-        <SeletorAbrangencia
-          localizacoes={localizacoesDisponiveis}
-          abrangenciaId={form.abrangencia_id}
-          onChange={(id) => setForm((p) => ({ ...p, abrangencia_id: id }))}
-        />
-
-        {/* DATA INÍCIO */}
-        <Text style={styles.sectionTitle}>Data e Hora *</Text>
-        <Text style={styles.label}>Início</Text>
-        <View style={styles.dateRow}>
-          <TouchableOpacity style={styles.dateButton} onPress={() => setShowDateInicio(true)}>
-            <Text style={styles.dateButtonText}>📅 {formatDate(form.data_inicio)}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.dateButton} onPress={() => setShowTimePicker(true)}>
-            <Text style={styles.dateButtonText}>🕐 {formatTime(form.data_inicio)}</Text>
+      <SafeAreaView style={{ flex: 1, backgroundColor: "#0A3D62" }} edges={["top", "bottom"]}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>{isEditing ? "Editar Evento" : "Criar Evento"}</Text>
+          <TouchableOpacity onPress={onClose}>
+            <Text style={styles.headerClose}>✕</Text>
           </TouchableOpacity>
         </View>
 
-        {showDateInicio && (
-          <DateTimePicker value={form.data_inicio} mode="date" display="default"
-            onChange={(_, date) => { setShowDateInicio(false); if (date) { const u = new Date(form.data_inicio); u.setFullYear(date.getFullYear(), date.getMonth(), date.getDate()); setForm((p) => ({ ...p, data_inicio: u })); } }} />
-        )}
-        {showTimePicker && (
-          <DateTimePicker value={form.data_inicio} mode="time" display="default"
-            onChange={(_, date) => { setShowTimePicker(false); if (date) { const u = new Date(form.data_inicio); u.setHours(date.getHours(), date.getMinutes()); setForm((p) => ({ ...p, data_inicio: u })); } }} />
-        )}
+        <ScrollView contentContainerStyle={styles.content}>
 
-        {/* DATA FIM */}
-        <View style={styles.switchRowFim}>
-          <Text style={styles.label}>Definir horário de término</Text>
-          <Switch value={form.data_fim !== null}
-            onValueChange={(v) => setForm((p) => ({ ...p, data_fim: v ? new Date(p.data_inicio) : null }))}
-            trackColor={{ false: "#767577", true: "#17A2B8" }} thumbColor="#fff" />
-        </View>
-        {form.data_fim !== null && (
+          {/* MODELO */}
+          <Text style={styles.sectionTitle}>Selecione a Reunião ou Evento *</Text>
+          {isLoadingModelos ? (
+            <ActivityIndicator color="#17A2B8" style={{ marginVertical: 10 }} />
+          ) : (
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={form.modelo_id ?? ""}
+                onValueChange={(v) => setForm((p) => ({ ...p, modelo_id: v || null }))}
+                mode="dropdown"
+                style={{ color: "#333" }}
+              >
+                <Picker.Item label="Selecione o modelo..." value="" color="#999" />
+                {modelosEventos.length > 0 && <Picker.Item label="── Eventos ──" value="_eventos" enabled={false} color="#AAA" />}
+                {modelosEventos.map((m) => <Picker.Item key={m.id} label={m.nome} value={m.id} />)}
+                {modelosReunioes.length > 0 && <Picker.Item label="── Reuniões ──" value="_reunioes" enabled={false} color="#AAA" />}
+                {modelosReunioes.map((m) => <Picker.Item key={m.id} label={m.nome} value={m.id} />)}
+              </Picker>
+            </View>
+          )}
+
+          {/* DESCRIÇÃO */}
+          <Text style={styles.label}>Descrição (opcional)</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={form.descricao}
+            onChangeText={(v) => setForm((p) => ({ ...p, descricao: v }))}
+            placeholder="Detalhes adicionais sobre a reunião ou evento"
+            multiline
+            numberOfLines={3}
+          />
+
+          {/* LOCAL DO EVENTO */}
+          <Text style={styles.sectionTitle}>Local do Evento *</Text>
+          <Text style={styles.infoText}>Selecione a congregação onde o evento ocorrerá.</Text>
+          <SeletorLocalizacao
+            localizacoes={localizacoesDisponiveis}
+            localizacaoId={form.localizacao_id}
+            onChange={(id) => setForm((p) => ({ ...p, localizacao_id: id }))}
+          />
+
+          {/* ABRANGÊNCIA */}
+          <Text style={styles.sectionTitle}>Abrangência *</Text>
+          <Text style={styles.infoText}>
+            Quem poderá ver este evento? Selecione o nível hierárquico: uma congregação específica, um setor, uma administração ou toda a regional.
+          </Text>
+          <SeletorAbrangencia
+            localizacoes={localizacoesDisponiveis}
+            abrangenciaId={form.abrangencia_id}
+            onChange={(id) => setForm((p) => ({ ...p, abrangencia_id: id }))}
+          />
+
+          {/* DATA INÍCIO */}
+          <Text style={styles.sectionTitle}>Data e Hora *</Text>
+          <Text style={styles.label}>Início</Text>
           <View style={styles.dateRow}>
-            <TouchableOpacity style={styles.dateButton} onPress={() => setShowDateFim(true)}>
-              <Text style={styles.dateButtonText}>📅 {formatDate(form.data_fim)}</Text>
+            <TouchableOpacity style={styles.dateButton} onPress={() => setShowDateInicio(true)}>
+              <Text style={styles.dateButtonText}>📅 {formatDate(form.data_inicio)}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.dateButton} onPress={() => setShowTimeFim(true)}>
-              <Text style={styles.dateButtonText}>🕐 {formatTime(form.data_fim)}</Text>
+            <TouchableOpacity style={styles.dateButton} onPress={() => setShowTimePicker(true)}>
+              <Text style={styles.dateButtonText}>🕐 {formatTime(form.data_inicio)}</Text>
             </TouchableOpacity>
           </View>
-        )}
-        {showDateFim && (
-          <DateTimePicker value={form.data_fim || new Date()} mode="date" display="default"
-            onChange={(_, date) => { setShowDateFim(false); if (date) { const u = new Date(form.data_fim!); u.setFullYear(date.getFullYear(), date.getMonth(), date.getDate()); setForm((p) => ({ ...p, data_fim: u })); } }} />
-        )}
-        {showTimeFim && (
-          <DateTimePicker value={form.data_fim || new Date()} mode="time" display="default"
-            onChange={(_, date) => { setShowTimeFim(false); if (date) { const u = new Date(form.data_fim!); u.setHours(date.getHours(), date.getMinutes()); setForm((p) => ({ ...p, data_fim: u })); } }} />
-        )}
 
-        {/* CARGOS VISÍVEIS */}
-        <Text style={styles.sectionTitle}>Cargos que podem visualizar *</Text>
-        <View style={styles.cargosContainer}>
-          {cargosDisponiveis.map((cargo) => {
-            const selected = form.cargos_visiveis.includes(cargo.id);
-            return (
-              <TouchableOpacity key={cargo.id}
-                style={[styles.cargoChip, selected && styles.cargoChipSelected]}
-                onPress={() => toggleCargo(cargo.id)}>
-                <Text style={[styles.cargoChipText, selected && styles.cargoChipTextSelected]}>{cargo.nome}</Text>
+          {showDateInicio && (
+            <DateTimePicker value={form.data_inicio} mode="date" display="default"
+              onChange={(_, date) => { setShowDateInicio(false); if (date) { const u = new Date(form.data_inicio); u.setFullYear(date.getFullYear(), date.getMonth(), date.getDate()); setForm((p) => ({ ...p, data_inicio: u })); } }} />
+          )}
+          {showTimePicker && (
+            <DateTimePicker value={form.data_inicio} mode="time" display="default"
+              onChange={(_, date) => { setShowTimePicker(false); if (date) { const u = new Date(form.data_inicio); u.setHours(date.getHours(), date.getMinutes()); setForm((p) => ({ ...p, data_inicio: u })); } }} />
+          )}
+
+          {/* DATA FIM */}
+          <View style={styles.switchRowFim}>
+            <Text style={styles.label}>Definir horário de término</Text>
+            <Switch value={form.data_fim !== null}
+              onValueChange={(v) => setForm((p) => ({ ...p, data_fim: v ? new Date(p.data_inicio) : null }))}
+              trackColor={{ false: "#767577", true: "#17A2B8" }} thumbColor="#fff" />
+          </View>
+          {form.data_fim !== null && (
+            <View style={styles.dateRow}>
+              <TouchableOpacity style={styles.dateButton} onPress={() => setShowDateFim(true)}>
+                <Text style={styles.dateButtonText}>📅 {formatDate(form.data_fim)}</Text>
               </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {/* RECORRÊNCIA */}
-        <View style={styles.switchRow}>
-          <Text style={styles.label}>Evento Recorrente</Text>
-          <Switch value={form.recorrente}
-            onValueChange={(v) => setForm((p) => ({ ...p, recorrente: v }))}
-            trackColor={{ false: "#767577", true: "#0A3D62" }} />
-        </View>
-
-        {form.recorrente && (
-          <View style={styles.recorrenciaBox}>
-            <Text style={styles.label}>Frequência</Text>
-            <View style={styles.pickerContainer}>
-              <Picker selectedValue={form.recorrencia_tipo ?? ""}
-                onValueChange={(v) => setForm((p) => ({ ...p, recorrencia_tipo: (v || null) as RecorrenciaTipo | null }))}
-                style={{ color: "#333" }}>
-                <Picker.Item label="Selecione..." value="" color="#999" />
-                <Picker.Item label="Semanal (toda semana)" value="semanal" />
-                <Picker.Item label="Mensal (todo mês)" value="mensal" />
-                <Picker.Item label="Bimestral (a cada 2 meses)" value="bimestral" />
-                <Picker.Item label="Trimestral (a cada 3 meses)" value="trimestral" />
-                <Picker.Item label="Personalizado (a cada X meses)" value="personalizado" />
-              </Picker>
+              <TouchableOpacity style={styles.dateButton} onPress={() => setShowTimeFim(true)}>
+                <Text style={styles.dateButtonText}>🕐 {formatTime(form.data_fim)}</Text>
+              </TouchableOpacity>
             </View>
+          )}
+          {showDateFim && (
+            <DateTimePicker value={form.data_fim || new Date()} mode="date" display="default"
+              onChange={(_, date) => { setShowDateFim(false); if (date) { const u = new Date(form.data_fim!); u.setFullYear(date.getFullYear(), date.getMonth(), date.getDate()); setForm((p) => ({ ...p, data_fim: u })); } }} />
+          )}
+          {showTimeFim && (
+            <DateTimePicker value={form.data_fim || new Date()} mode="time" display="default"
+              onChange={(_, date) => { setShowTimeFim(false); if (date) { const u = new Date(form.data_fim!); u.setHours(date.getHours(), date.getMinutes()); setForm((p) => ({ ...p, data_fim: u })); } }} />
+          )}
 
-            {form.recorrencia_tipo === "personalizado" && (
-              <>
-                <Text style={styles.label}>Repetir a cada quantos meses?</Text>
-                <TextInput style={styles.input}
-                  value={form.recorrencia_intervalo ? String(form.recorrencia_intervalo) : ""}
-                  onChangeText={(v) => setForm((p) => ({ ...p, recorrencia_intervalo: v ? parseInt(v) : null }))}
-                  placeholder="Ex: 4" keyboardType="numeric" />
-              </>
-            )}
-
-            {form.recorrencia_tipo === "semanal" && (
-              <>
-                <Text style={styles.label}>Dia da semana</Text>
-                <View style={styles.pickerContainer}>
-                  <Picker selectedValue={form.recorrencia_dia_semana ?? ""}
-                    onValueChange={(v) => setForm((p) => ({ ...p, recorrencia_dia_semana: v === "" ? null : Number(v) }))}
-                    style={{ color: "#333" }}>
-                    <Picker.Item label="Selecione..." value="" color="#999" />
-                    {DIAS_SEMANA.map((dia) => <Picker.Item key={dia.value} label={dia.label} value={dia.value} />)}
-                  </Picker>
-                </View>
-              </>
-            )}
-
-            {form.recorrencia_tipo && form.recorrencia_tipo !== "semanal" && (
-              <>
-                <Text style={styles.label}>Qual semana do mês?</Text>
-                <View style={styles.pickerContainer}>
-                  <Picker selectedValue={form.recorrencia_semana_do_mes ?? ""}
-                    onValueChange={(v) => setForm((p) => ({ ...p, recorrencia_semana_do_mes: v === "" ? null : Number(v) }))}
-                    style={{ color: "#333" }}>
-                    <Picker.Item label="Selecione..." value="" color="#999" />
-                    {SEMANAS_DO_MES.map((s) => <Picker.Item key={s.value} label={s.label} value={s.value} />)}
-                  </Picker>
-                </View>
-                <Text style={styles.label}>Dia da semana</Text>
-                <View style={styles.pickerContainer}>
-                  <Picker selectedValue={form.recorrencia_dia_semana ?? ""}
-                    onValueChange={(v) => setForm((p) => ({ ...p, recorrencia_dia_semana: v === "" ? null : Number(v) }))}
-                    style={{ color: "#333" }}>
-                    <Picker.Item label="Selecione..." value="" color="#999" />
-                    {DIAS_SEMANA.map((dia) => <Picker.Item key={dia.value} label={dia.label} value={dia.value} />)}
-                  </Picker>
-                </View>
-              </>
-            )}
-
-            <Text style={styles.label}>Repetir até (data)</Text>
-            <TouchableOpacity style={styles.dateButton} onPress={() => setShowDateRecorrenciaFim(true)}>
-              <Text style={styles.dateButtonText}>
-                📅 {form.recorrencia_fim ? formatDate(form.recorrencia_fim) : "Não definida"}
-              </Text>
-            </TouchableOpacity>
-            {form.recorrencia_fim && (
-              <TouchableOpacity onPress={() => setForm((p) => ({ ...p, recorrencia_fim: null }))}>
-                <Text style={styles.clearText}>Remover data</Text>
-              </TouchableOpacity>
-            )}
-            {showDateRecorrenciaFim && (
-              <DateTimePicker value={form.recorrencia_fim || new Date()} mode="date" display="default"
-                onChange={(_, date) => { setShowDateRecorrenciaFim(false); if (date) setForm((p) => ({ ...p, recorrencia_fim: date })); }} />
-            )}
-            {showVinculadoTimePicker && editingVinculadoIndex !== null && (
-              <DateTimePicker value={eventosVinculados[editingVinculadoIndex]?.horario || new Date()} mode="time" display="default"
-                onChange={(_, date) => { setShowVinculadoTimePicker(false); if (date && editingVinculadoIndex !== null) updateEventoVinculado(editingVinculadoIndex, "horario", date); setEditingVinculadoIndex(null); }} />
-            )}
-
-            <Text style={styles.label}>Ou repetir quantas vezes</Text>
-            <TextInput style={styles.input}
-              value={form.recorrencia_total ? String(form.recorrencia_total) : ""}
-              onChangeText={(v) => setForm((p) => ({ ...p, recorrencia_total: v ? parseInt(v) : null }))}
-              placeholder="Ex: 12" keyboardType="numeric" />
-          </View>
-        )}
-
-        {/* EVENTOS VINCULADOS */}
-        {form.recorrente && (
-          <View>
-            <Text style={styles.sectionTitle}>Eventos Vinculados</Text>
-            <Text style={styles.infoText}>Eventos que ocorrem antes deste (ex: véspera, antevéspera)</Text>
-            {eventosVinculados.map((vinculado, index) => (
-              <View key={index} style={styles.vinculadoBox}>
-                <View style={styles.vinculadoHeader}>
-                  <Text style={styles.vinculadoTitle}>Evento {index + 1}</Text>
-                  <TouchableOpacity onPress={() => removeEventoVinculado(index)}>
-                    <Text style={styles.removeText}>✕ Remover</Text>
-                  </TouchableOpacity>
-                </View>
-                <Text style={styles.label}>Título:</Text>
-                <TextInput style={styles.input} value={vinculado.titulo}
-                  onChangeText={(v) => updateEventoVinculado(index, "titulo", v)}
-                  placeholder="Ex: Reunião de véspera" />
-                <Text style={styles.label}>Dias antes do evento principal:</Text>
-                <TextInput style={styles.input}
-                  value={vinculado.dias_antes === 0 ? "" : String(vinculado.dias_antes)}
-                  onChangeText={(v) => { const num = v.replace(/[^0-9]/g, ""); updateEventoVinculado(index, "dias_antes", num === "" ? 0 : parseInt(num)); }}
-                  keyboardType="numeric" placeholder="Ex: 1 (véspera)" />
-                <Text style={styles.label}>Horário:</Text>
-                <TouchableOpacity style={styles.dateButton} onPress={() => { setEditingVinculadoIndex(index); setShowVinculadoTimePicker(true); }}>
-                  <Text style={styles.dateButtonText}>
-                    🕐 {vinculado.horario.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                  </Text>
+          {/* CARGOS VISÍVEIS */}
+          <Text style={styles.sectionTitle}>Cargos que podem visualizar *</Text>
+          <View style={styles.cargosContainer}>
+            {cargosDisponiveis.map((cargo) => {
+              const selected = form.cargos_visiveis.includes(cargo.id);
+              return (
+                <TouchableOpacity key={cargo.id}
+                  style={[styles.cargoChip, selected && styles.cargoChipSelected]}
+                  onPress={() => toggleCargo(cargo.id)}>
+                  <Text style={[styles.cargoChipText, selected && styles.cargoChipTextSelected]}>{cargo.nome}</Text>
                 </TouchableOpacity>
-                <Text style={styles.label}>Cargos que podem visualizar:</Text>
-                <View style={styles.cargosContainer}>
-                  {cargosDisponiveis.map((cargo) => {
-                    const selected = vinculado.cargos_visiveis.includes(cargo.id);
-                    return (
-                      <TouchableOpacity key={cargo.id}
-                        style={[styles.cargoChip, selected && styles.cargoChipSelected]}
-                        onPress={() => { const novos = selected ? vinculado.cargos_visiveis.filter((id) => id !== cargo.id) : [...vinculado.cargos_visiveis, cargo.id]; updateEventoVinculado(index, "cargos_visiveis", novos); }}>
-                        <Text style={[styles.cargoChipText, selected && styles.cargoChipTextSelected]}>{cargo.nome}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-            ))}
-            <TouchableOpacity style={styles.addVinculadoButton} onPress={addEventoVinculado}>
-              <Text style={styles.addVinculadoButtonText}>+ Adicionar Evento Vinculado</Text>
-            </TouchableOpacity>
+              );
+            })}
           </View>
-        )}
 
-        {/* ALERTAS PUSH */}
-        <Text style={styles.sectionTitle}>Alertas de Notificação Push</Text>
-        <Text style={styles.infoText}>Envie notificações automáticas antes do evento para os cargos visíveis.</Text>
-        {form.alertas.map((alerta, index) => (
-          <View key={index} style={styles.vinculadoBox}>
-            <View style={styles.vinculadoHeader}>
-              <Text style={styles.vinculadoTitle}>Alerta {index + 1}</Text>
-              <TouchableOpacity onPress={() => removeAlerta(index)}>
-                <Text style={styles.removeText}>✕ Remover</Text>
+          {/* RECORRÊNCIA */}
+          <View style={styles.switchRow}>
+            <Text style={styles.label}>Evento Recorrente</Text>
+            <Switch value={form.recorrente}
+              onValueChange={(v) => setForm((p) => ({ ...p, recorrente: v }))}
+              trackColor={{ false: "#767577", true: "#0A3D62" }} />
+          </View>
+
+          {form.recorrente && (
+            <View style={styles.recorrenciaBox}>
+              <Text style={styles.label}>Frequência</Text>
+              <View style={styles.pickerContainer}>
+                <Picker selectedValue={form.recorrencia_tipo ?? ""}
+                  onValueChange={(v) => setForm((p) => ({ ...p, recorrencia_tipo: (v || null) as RecorrenciaTipo | null }))}
+                  style={{ color: "#333" }}>
+                  <Picker.Item label="Selecione..." value="" color="#999" />
+                  <Picker.Item label="Semanal (toda semana)" value="semanal" />
+                  <Picker.Item label="Mensal (todo mês)" value="mensal" />
+                  <Picker.Item label="Bimestral (a cada 2 meses)" value="bimestral" />
+                  <Picker.Item label="Trimestral (a cada 3 meses)" value="trimestral" />
+                  <Picker.Item label="Personalizado (a cada X meses)" value="personalizado" />
+                </Picker>
+              </View>
+
+              {form.recorrencia_tipo === "personalizado" && (
+                <>
+                  <Text style={styles.label}>Repetir a cada quantos meses?</Text>
+                  <TextInput style={styles.input}
+                    value={form.recorrencia_intervalo ? String(form.recorrencia_intervalo) : ""}
+                    onChangeText={(v) => setForm((p) => ({ ...p, recorrencia_intervalo: v ? parseInt(v) : null }))}
+                    placeholder="Ex: 4" keyboardType="numeric" />
+                </>
+              )}
+
+              {form.recorrencia_tipo === "semanal" && (
+                <>
+                  <Text style={styles.label}>Dia da semana</Text>
+                  <View style={styles.pickerContainer}>
+                    <Picker selectedValue={form.recorrencia_dia_semana ?? ""}
+                      onValueChange={(v) => setForm((p) => ({ ...p, recorrencia_dia_semana: v === "" ? null : Number(v) }))}
+                      style={{ color: "#333" }}>
+                      <Picker.Item label="Selecione..." value="" color="#999" />
+                      {DIAS_SEMANA.map((dia) => <Picker.Item key={dia.value} label={dia.label} value={dia.value} />)}
+                    </Picker>
+                  </View>
+                </>
+              )}
+
+              {form.recorrencia_tipo && form.recorrencia_tipo !== "semanal" && (
+                <>
+                  <Text style={styles.label}>Qual semana do mês?</Text>
+                  <View style={styles.pickerContainer}>
+                    <Picker selectedValue={form.recorrencia_semana_do_mes ?? ""}
+                      onValueChange={(v) => setForm((p) => ({ ...p, recorrencia_semana_do_mes: v === "" ? null : Number(v) }))}
+                      style={{ color: "#333" }}>
+                      <Picker.Item label="Selecione..." value="" color="#999" />
+                      {SEMANAS_DO_MES.map((s) => <Picker.Item key={s.value} label={s.label} value={s.value} />)}
+                    </Picker>
+                  </View>
+                  <Text style={styles.label}>Dia da semana</Text>
+                  <View style={styles.pickerContainer}>
+                    <Picker selectedValue={form.recorrencia_dia_semana ?? ""}
+                      onValueChange={(v) => setForm((p) => ({ ...p, recorrencia_dia_semana: v === "" ? null : Number(v) }))}
+                      style={{ color: "#333" }}>
+                      <Picker.Item label="Selecione..." value="" color="#999" />
+                      {DIAS_SEMANA.map((dia) => <Picker.Item key={dia.value} label={dia.label} value={dia.value} />)}
+                    </Picker>
+                  </View>
+                </>
+              )}
+
+              <Text style={styles.label}>Repetir até (data)</Text>
+              <TouchableOpacity style={styles.dateButton} onPress={() => setShowDateRecorrenciaFim(true)}>
+                <Text style={styles.dateButtonText}>
+                  📅 {form.recorrencia_fim ? formatDate(form.recorrencia_fim) : "Não definida"}
+                </Text>
+              </TouchableOpacity>
+              {form.recorrencia_fim && (
+                <TouchableOpacity onPress={() => setForm((p) => ({ ...p, recorrencia_fim: null }))}>
+                  <Text style={styles.clearText}>Remover data</Text>
+                </TouchableOpacity>
+              )}
+              {showDateRecorrenciaFim && (
+                <DateTimePicker value={form.recorrencia_fim || new Date()} mode="date" display="default"
+                  onChange={(_, date) => { setShowDateRecorrenciaFim(false); if (date) setForm((p) => ({ ...p, recorrencia_fim: date })); }} />
+              )}
+              {showVinculadoTimePicker && editingVinculadoIndex !== null && (
+                <DateTimePicker value={eventosVinculados[editingVinculadoIndex]?.horario || new Date()} mode="time" display="default"
+                  onChange={(_, date) => { setShowVinculadoTimePicker(false); if (date && editingVinculadoIndex !== null) updateEventoVinculado(editingVinculadoIndex, "horario", date); setEditingVinculadoIndex(null); }} />
+              )}
+
+              <Text style={styles.label}>Ou repetir quantas vezes</Text>
+              <TextInput style={styles.input}
+                value={form.recorrencia_total ? String(form.recorrencia_total) : ""}
+                onChangeText={(v) => setForm((p) => ({ ...p, recorrencia_total: v ? parseInt(v) : null }))}
+                placeholder="Ex: 12" keyboardType="numeric" />
+            </View>
+          )}
+
+          {/* EVENTOS VINCULADOS */}
+          {form.recorrente && (
+            <View>
+              <Text style={styles.sectionTitle}>Eventos Vinculados</Text>
+              <Text style={styles.infoText}>Eventos que ocorrem antes deste (ex: véspera, antevéspera)</Text>
+              {eventosVinculados.map((vinculado, index) => (
+                <View key={index} style={styles.vinculadoBox}>
+                  <View style={styles.vinculadoHeader}>
+                    <Text style={styles.vinculadoTitle}>Evento {index + 1}</Text>
+                    <TouchableOpacity onPress={() => removeEventoVinculado(index)}>
+                      <Text style={styles.removeText}>✕ Remover</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.label}>Título:</Text>
+                  <TextInput style={styles.input} value={vinculado.titulo}
+                    onChangeText={(v) => updateEventoVinculado(index, "titulo", v)}
+                    placeholder="Ex: Reunião de véspera" />
+                  <Text style={styles.label}>Dias antes do evento principal:</Text>
+                  <TextInput style={styles.input}
+                    value={vinculado.dias_antes === 0 ? "" : String(vinculado.dias_antes)}
+                    onChangeText={(v) => { const num = v.replace(/[^0-9]/g, ""); updateEventoVinculado(index, "dias_antes", num === "" ? 0 : parseInt(num)); }}
+                    keyboardType="numeric" placeholder="Ex: 1 (véspera)" />
+                  <Text style={styles.label}>Horário:</Text>
+                  <TouchableOpacity style={styles.dateButton} onPress={() => { setEditingVinculadoIndex(index); setShowVinculadoTimePicker(true); }}>
+                    <Text style={styles.dateButtonText}>
+                      🕐 {vinculado.horario.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                    </Text>
+                  </TouchableOpacity>
+                  <Text style={styles.label}>Cargos que podem visualizar:</Text>
+                  <View style={styles.cargosContainer}>
+                    {cargosDisponiveis.map((cargo) => {
+                      const selected = vinculado.cargos_visiveis.includes(cargo.id);
+                      return (
+                        <TouchableOpacity key={cargo.id}
+                          style={[styles.cargoChip, selected && styles.cargoChipSelected]}
+                          onPress={() => { const novos = selected ? vinculado.cargos_visiveis.filter((id) => id !== cargo.id) : [...vinculado.cargos_visiveis, cargo.id]; updateEventoVinculado(index, "cargos_visiveis", novos); }}>
+                          <Text style={[styles.cargoChipText, selected && styles.cargoChipTextSelected]}>{cargo.nome}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              ))}
+              <TouchableOpacity style={styles.addVinculadoButton} onPress={addEventoVinculado}>
+                <Text style={styles.addVinculadoButtonText}>+ Adicionar Evento Vinculado</Text>
               </TouchableOpacity>
             </View>
-            <Text style={styles.label}>Quando enviar:</Text>
-            <View style={styles.pickerContainer}>
-              <Picker selectedValue={alerta.horas_antes} onValueChange={(v) => updateAlerta(index, Number(v))} style={{ color: "#333" }}>
-                {OPCOES_ALERTA.map((op) => <Picker.Item key={op.value} label={op.label} value={op.value} />)}
-              </Picker>
+          )}
+
+          {/* ALERTAS PUSH */}
+          <Text style={styles.sectionTitle}>Alertas de Notificação Push</Text>
+          <Text style={styles.infoText}>Envie notificações automáticas antes do evento para os cargos visíveis.</Text>
+          {form.alertas.map((alerta, index) => (
+            <View key={index} style={styles.vinculadoBox}>
+              <View style={styles.vinculadoHeader}>
+                <Text style={styles.vinculadoTitle}>Alerta {index + 1}</Text>
+                <TouchableOpacity onPress={() => removeAlerta(index)}>
+                  <Text style={styles.removeText}>✕ Remover</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.label}>Quando enviar:</Text>
+              <View style={styles.pickerContainer}>
+                <Picker selectedValue={alerta.horas_antes} onValueChange={(v) => updateAlerta(index, Number(v))} style={{ color: "#333" }}>
+                  {OPCOES_ALERTA.map((op) => <Picker.Item key={op.value} label={op.label} value={op.value} />)}
+                </Picker>
+              </View>
             </View>
-          </View>
-        ))}
-        <TouchableOpacity style={styles.addVinculadoButton} onPress={addAlerta}>
-          <Text style={styles.addVinculadoButtonText}>+ Adicionar Alerta</Text>
-        </TouchableOpacity>
+          ))}
+          <TouchableOpacity style={styles.addVinculadoButton} onPress={addAlerta}>
+            <Text style={styles.addVinculadoButtonText}>+ Adicionar Alerta</Text>
+          </TouchableOpacity>
 
-      </ScrollView>
+        </ScrollView>
 
-      {/* FOOTER */}
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-          <Text style={styles.cancelButtonText}>Cancelar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.saveButton, state.isSubmitting && styles.saveButtonDisabled]}
-          onPress={handleSave}
-          disabled={state.isSubmitting}>
-          {state.isSubmitting
-            ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.saveButtonText}>{isEditing ? "Salvar Alterações" : "Criar Evento"}</Text>}
-        </TouchableOpacity>
-      </View>
+        {/* FOOTER */}
+        <View style={styles.footer}>
+          <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+            <Text style={styles.cancelButtonText}>Cancelar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.saveButton, state.isSubmitting && styles.saveButtonDisabled]}
+            onPress={handleSave}
+            disabled={state.isSubmitting}>
+            {state.isSubmitting
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={styles.saveButtonText}>{isEditing ? "Salvar Alterações" : "Criar Evento"}</Text>}
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     </Modal>
   );
 };
