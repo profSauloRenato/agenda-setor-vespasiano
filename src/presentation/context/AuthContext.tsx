@@ -1,3 +1,8 @@
+// src/presentation/context/AuthContext.tsx
+// Nenhuma alteração necessária — deve_trocar_senha já faz parte de IUsuario
+// e é retornado pelo getUsuarioLogado (que lê do banco).
+// O campo fica disponível via: const { user } = useAuth()  →  user.deve_trocar_senha
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../../config/supabaseClient';
 import { serviceLocator } from '../../config/serviceLocator';
@@ -71,9 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   return (
@@ -85,8 +88,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth deve ser usado dentro de um AuthProvider');
-  }
+  if (!context) throw new Error('useAuth deve ser usado dentro de um AuthProvider');
   return context;
 };

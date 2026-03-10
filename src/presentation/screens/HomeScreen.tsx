@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Feather } from "@expo/vector-icons";
 import { useAuth } from "../context/AuthContext";
 import {
   useEventoUseCases,
@@ -44,9 +45,6 @@ type RootStackParamList = {
   EventoModelosManager: undefined;
 };
 
-// -------------------------------------------
-// CONSTANTES DE COR
-// -------------------------------------------
 const TIPO_CORES: Record<string, string> = {
   "Congregação": "#28A745",
   "Setor": "#17A2B8",
@@ -59,9 +57,6 @@ const COR_COMPROMISSO = "#6C757D";
 
 const getTipoCor = (tipo: string): string => TIPO_CORES[tipo] ?? "#6C757D";
 
-// -------------------------------------------
-// HELPERS
-// -------------------------------------------
 const formatarHora = (iso: string): string =>
   new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
@@ -74,16 +69,10 @@ const formatarDataCurta = (iso: string): string => {
   });
 };
 
-// -------------------------------------------
-// TIPO UNIFICADO PARA O FEED
-// -------------------------------------------
 type FeedItem =
   | { kind: "evento"; data: IEvento }
   | { kind: "compromisso"; data: ICompromissoPessoal };
 
-// -------------------------------------------
-// CARD DE EVENTO
-// -------------------------------------------
 const EventoCard: React.FC<{
   evento: IEvento;
   onPress: (evento: IEvento) => void;
@@ -116,9 +105,6 @@ const EventoCard: React.FC<{
   );
 };
 
-// -------------------------------------------
-// CARD DE COMPROMISSO PESSOAL
-// -------------------------------------------
 const CompromissoCard: React.FC<{
   compromisso: ICompromissoPessoal;
   onPress: (compromisso: ICompromissoPessoal) => void;
@@ -155,10 +141,6 @@ const CompromissoCard: React.FC<{
   </TouchableOpacity>
 );
 
-// -------------------------------------------
-// CARROSSEL DE VERSÍCULO E MENSAGENS
-// -------------------------------------------
-
 const TextoCard: React.FC<{
   texto: string;
   labelColor: string;
@@ -168,7 +150,6 @@ const TextoCard: React.FC<{
   onExpandir: () => void;
   onRecolher: () => void;
 }> = ({ texto, labelColor, bgColor, limiteLinhas, expandido, onExpandir, onRecolher }) => {
-  // const [expandido, setExpandido] = useState(false);
   const [truncado, setTruncado] = useState(false);
   const [medido, setMedido] = useState(false);
 
@@ -192,10 +173,7 @@ const TextoCard: React.FC<{
             onPress={onExpandir}>Ler mais ▼</Text>
         </View>
       )}
-      {!truncado && (
-        // Placeholder com mesma altura do "Ler mais" para manter altura consistente
-        <View style={{ height: 44 }} />
-      )}
+      {!truncado && <View style={{ height: 44 }} />}
       {expandido && (
         <View style={stylesCarrossel.lerMaisRow}>
           <Text style={[stylesCarrossel.lerMaisInline, { color: labelColor }]}
@@ -215,7 +193,6 @@ const CarrosselCards: React.FC<{
   const [truncado, setTruncado] = useState(false);
   const [medido, setMedido] = useState(false);
 
-
   const cards = React.useMemo(() => {
     const lista: Array<{ tipo: "versiculo" | "mensagem"; dados: any }> = [];
     if (versiculo) lista.push({ tipo: "versiculo", dados: versiculo });
@@ -223,7 +200,6 @@ const CarrosselCards: React.FC<{
     return lista;
   }, [versiculo, mensagens]);
 
-  // Rotação automática — pausa quando expandido
   useEffect(() => {
     if (cards.length <= 1 || expandido) return;
     const timer = setInterval(() => {
@@ -232,7 +208,6 @@ const CarrosselCards: React.FC<{
     return () => clearInterval(timer);
   }, [cards.length, expandido, indiceAtual]);
 
-  // Reset ao trocar card
   useEffect(() => {
     setExpandido(false);
     setTruncado(false);
@@ -247,11 +222,9 @@ const CarrosselCards: React.FC<{
   const bgColor = isMensagem ? "#8B0000" : "#0A3D62";
   const labelColor = isMensagem ? "#FFCCCC" : "#BEE5EB";
   const texto = isMensagem ? card.dados.texto : `"${card.dados.texto}"`;
-  const LIMITE_LINHAS = 2;
 
   return (
     <View style={[stylesCarrossel.container, { backgroundColor: bgColor }]}>
-
       <View style={stylesCarrossel.labelRow}>
         <Text style={[stylesCarrossel.label, { color: labelColor }]}>
           {isMensagem ? `📢 ${card.dados.titulo}` : "📖 Versículo do Dia"}
@@ -274,17 +247,13 @@ const CarrosselCards: React.FC<{
         onRecolher={() => setExpandido(false)}
       />
 
-      {/* Navegação (setas + dots) — apenas quando há mais de 1 card */}
       {cards.length > 1 && !expandido && (
         <View style={stylesCarrossel.navegacao}>
           <TouchableOpacity
-            onPress={() =>
-              setIndiceAtual((prev) => (prev - 1 + cards.length) % cards.length)
-            }
+            onPress={() => setIndiceAtual((prev) => (prev - 1 + cards.length) % cards.length)}
           >
             <Text style={stylesCarrossel.seta}>‹</Text>
           </TouchableOpacity>
-
           <View style={stylesCarrossel.dots}>
             {cards.map((c, i) => (
               <View
@@ -293,18 +262,14 @@ const CarrosselCards: React.FC<{
                   stylesCarrossel.dot,
                   i === indiceAtual && stylesCarrossel.dotAtivo,
                   c.tipo === "mensagem" && {
-                    backgroundColor:
-                      i === indiceAtual ? "#FF6B6B" : "rgba(255,107,107,0.4)",
+                    backgroundColor: i === indiceAtual ? "#FF6B6B" : "rgba(255,107,107,0.4)",
                   },
                 ]}
               />
             ))}
           </View>
-
           <TouchableOpacity
-            onPress={() =>
-              setIndiceAtual((prev) => (prev + 1) % cards.length)
-            }
+            onPress={() => setIndiceAtual((prev) => (prev + 1) % cards.length)}
           >
             <Text style={stylesCarrossel.seta}>›</Text>
           </TouchableOpacity>
@@ -315,73 +280,19 @@ const CarrosselCards: React.FC<{
 };
 
 const stylesCarrossel = StyleSheet.create({
-  container: {
-    margin: 15,
-    borderRadius: 12,
-    padding: 15,
-    minHeight: 118,
-  },
-  labelRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  labelReferencia: {
-    fontSize: 12,
-    fontWeight: "600",
-    fontStyle: "italic",
-  },
-  texto: {
-    fontSize: 15,
-    color: "#fff",
-    fontStyle: "italic",
-    lineHeight: 22,
-  },
-  lerMaisRow: {
-    alignItems: "flex-end",
-    marginTop: 2,
-  },
-  lerMaisInline: {
-    fontSize: 12,
-    fontWeight: "700",
-    fontStyle: "normal",
-  },
-  referencia: {
-    fontSize: 13,
-    marginTop: 8,
-    textAlign: "right",
-    fontWeight: "600",
-  },
-  navegacao: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 10,
-  },
-  seta: {
-    color: "#BEE5EB",
-    fontSize: 28,
-    fontWeight: "bold",
-    paddingHorizontal: 8,
-  },
-  dots: {
-    flexDirection: "row",
-    gap: 6,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "rgba(255,255,255,0.3)",
-  },
-  dotAtivo: {
-    backgroundColor: "#fff",
-  },
+  container: { margin: 15, borderRadius: 12, padding: 15, minHeight: 118 },
+  labelRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
+  label: { fontSize: 12, fontWeight: "600" },
+  labelReferencia: { fontSize: 12, fontWeight: "600", fontStyle: "italic" },
+  texto: { fontSize: 15, color: "#fff", fontStyle: "italic", lineHeight: 22 },
+  lerMaisRow: { alignItems: "flex-end", marginTop: 2 },
+  lerMaisInline: { fontSize: 12, fontWeight: "700", fontStyle: "normal" },
+  referencia: { fontSize: 13, marginTop: 8, textAlign: "right", fontWeight: "600" },
+  navegacao: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10 },
+  seta: { color: "#BEE5EB", fontSize: 28, fontWeight: "bold", paddingHorizontal: 8 },
+  dots: { flexDirection: "row", gap: 6 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.3)" },
+  dotAtivo: { backgroundColor: "#fff" },
 });
 
 // -------------------------------------------
@@ -407,11 +318,9 @@ const HomeScreen: React.FC = () => {
   const [versiculo, setVersiculo] = useState<IVersiculo | null>(null);
   const [mensagens, setMensagens] = useState<IMensagemAdmin[]>([]);
 
-  // Modais de evento
   const [eventoSelecionado, setEventoSelecionado] = useState<IEvento | null>(null);
   const [isEventoDetailsVisible, setIsEventoDetailsVisible] = useState(false);
 
-  // Modais de compromisso
   const [compromissoSelecionado, setCompromissoSelecionado] =
     useState<ICompromissoPessoal | null>(null);
   const [isCompromissoDetailsVisible, setIsCompromissoDetailsVisible] = useState(false);
@@ -431,9 +340,6 @@ const HomeScreen: React.FC = () => {
     }, [])
   );
 
-  // -------------------------------------------
-  // FEED UNIFICADO — próximos 7 dias
-  // -------------------------------------------
   const feedProximos = React.useMemo((): FeedItem[] => {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
@@ -472,9 +378,6 @@ const HomeScreen: React.FC = () => {
     );
   }, [eventosState.eventos, compromissosState.compromissos]);
 
-  // -------------------------------------------
-  // HANDLERS DE COMPROMISSO
-  // -------------------------------------------
   const handleSaveCompromisso = async (
     params: CreateCompromissoParams | UpdateCompromissoParams,
   ) => {
@@ -499,9 +402,6 @@ const HomeScreen: React.FC = () => {
 
   const isLoading = eventosState.isLoading || compromissosState.isLoading;
 
-  // -------------------------------------------
-  // RENDER
-  // -------------------------------------------
   return (
     <View style={styles.container}>
 
@@ -529,6 +429,22 @@ const HomeScreen: React.FC = () => {
         </View>
       </View>
 
+      {/* BANNER — senha provisória */}
+      {user?.deve_trocar_senha && (
+        <TouchableOpacity
+          style={styles.banner}
+          onPress={() => navigation.navigate("Perfil")}
+          activeOpacity={0.85}
+        >
+          <Feather name="alert-triangle" size={16} color="#856404" />
+          <View style={styles.bannerTexts}>
+            <Text style={styles.bannerTitle}>Você está usando uma senha provisória</Text>
+            <Text style={styles.bannerSub}>Toque para criar sua senha pessoal agora.</Text>
+          </View>
+          <Feather name="chevron-right" size={16} color="#856404" />
+        </TouchableOpacity>
+      )}
+
       {/* CARROSSEL */}
       {(versiculo || mensagens.length > 0) && (
         <CarrosselCards versiculo={versiculo} mensagens={mensagens} />
@@ -537,21 +453,16 @@ const HomeScreen: React.FC = () => {
       {/* TÍTULO */}
       <Text style={styles.sectionTitle}>📅 Próximos 7 dias</Text>
 
-      {/* LOADING */}
       {isLoading && (
         <ActivityIndicator size="large" color="#17A2B8" style={{ marginTop: 20 }} />
       )}
 
-      {/* FEED VAZIO */}
       {!isLoading && feedProximos.length === 0 && (
         <View style={styles.semEventos}>
-          <Text style={styles.semEventosText}>
-            Nenhum evento nos próximos 7 dias.
-          </Text>
+          <Text style={styles.semEventosText}>Nenhum evento nos próximos 7 dias.</Text>
         </View>
       )}
 
-      {/* FEED UNIFICADO */}
       {!isLoading && feedProximos.length > 0 && (
         <FlatList
           data={feedProximos}
@@ -584,7 +495,6 @@ const HomeScreen: React.FC = () => {
         />
       )}
 
-      {/* BOTÃO FIXO — AGENDA */}
       <TouchableOpacity
         style={styles.agendaButton}
         onPress={() => navigation.navigate("Agenda")}
@@ -592,37 +502,25 @@ const HomeScreen: React.FC = () => {
         <Text style={styles.agendaButtonText}>📅 Abrir Agenda Completa</Text>
       </TouchableOpacity>
 
-      {/* MODAL: detalhes de evento */}
       <EventoDetailsModal
         isVisible={isEventoDetailsVisible}
-        onClose={() => {
-          setIsEventoDetailsVisible(false);
-          setEventoSelecionado(null);
-        }}
+        onClose={() => { setIsEventoDetailsVisible(false); setEventoSelecionado(null); }}
         evento={eventoSelecionado}
         onEdit={() => { }}
         onDelete={() => { }}
       />
 
-      {/* MODAL: detalhes de compromisso */}
       <CompromissoDetailsModal
         isVisible={isCompromissoDetailsVisible}
-        onClose={() => {
-          setIsCompromissoDetailsVisible(false);
-          setCompromissoSelecionado(null);
-        }}
+        onClose={() => { setIsCompromissoDetailsVisible(false); setCompromissoSelecionado(null); }}
         compromisso={compromissoSelecionado}
         onEdit={handleEditCompromisso}
         onDelete={handleDeleteCompromisso}
       />
 
-      {/* MODAL: edição de compromisso (criação não disponível na Home) */}
       <CompromissoFormModal
         isVisible={isCompromissoFormVisible}
-        onClose={() => {
-          setIsCompromissoFormVisible(false);
-          setCompromissoToEdit(null);
-        }}
+        onClose={() => { setIsCompromissoFormVisible(false); setCompromissoToEdit(null); }}
         onSave={handleSaveCompromisso}
         compromissoToEdit={compromissoToEdit}
         isSubmitting={compromissosState.isSubmitting}
@@ -632,14 +530,8 @@ const HomeScreen: React.FC = () => {
   );
 };
 
-// -------------------------------------------
-// ESTILOS
-// -------------------------------------------
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8F9FA",
-  },
+  container: { flex: 1, backgroundColor: "#F8F9FA" },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -649,42 +541,30 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
     paddingHorizontal: 20,
   },
-  headerSaudacao: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-  headerSubtitulo: {
-    fontSize: 12,
-    color: "#BEE5EB",
-    marginTop: 2,
-  },
-  headerActions: {
+  headerSaudacao: { fontSize: 18, fontWeight: "bold", color: "#fff" },
+  headerSubtitulo: { fontSize: 12, color: "#BEE5EB", marginTop: 2 },
+  headerActions: { flexDirection: "row", gap: 8 },
+  headerButton: { padding: 6 },
+  headerButtonText: { fontSize: 28 },
+  headerButtonTextOut: { fontSize: 18 },
+  headerButtonLabel: { fontSize: 10, color: "#BEE5EB", textAlign: "center", marginTop: 1 },
+
+  // Banner senha provisória
+  banner: {
     flexDirection: "row",
-    gap: 8,
+    alignItems: "center",
+    backgroundColor: "#FFF3CD",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#FFEAA7",
   },
-  headerButton: {
-    padding: 6,
-  },
-  headerButtonText: {
-    fontSize: 28,
-  },
-  headerButtonTextOut: {
-    fontSize: 18,
-  },
-  headerButtonLabel: {
-    fontSize: 10,
-    color: '#BEE5EB',
-    textAlign: 'center',
-    marginTop: 1,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#0A3D62",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-  },
+  bannerTexts: { flex: 1 },
+  bannerTitle: { fontSize: 13, fontWeight: "700", color: "#856404" },
+  bannerSub: { fontSize: 11, color: "#856404", marginTop: 1 },
+
+  sectionTitle: { fontSize: 16, fontWeight: "bold", color: "#0A3D62", paddingHorizontal: 15, paddingVertical: 10 },
   card: {
     flexDirection: "row",
     alignItems: "center",
@@ -696,61 +576,18 @@ const styles = StyleSheet.create({
     borderLeftWidth: 5,
     elevation: 1,
   },
-  cardDataCol: {
-    width: 60,
-    alignItems: "center",
-    marginRight: 10,
-  },
-  cardData: {
-    fontSize: 12,
-    fontWeight: "600",
-    textTransform: "capitalize",
-  },
-  cardHora: {
-    fontSize: 13,
-    fontWeight: "bold",
-    marginTop: 2,
-  },
-  cardInfo: {
-    flex: 1,
-  },
-  cardTituloRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  cardTitulo: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#222",
-  },
-  cardLockIcon: {
-    fontSize: 13,
-  },
-  cardTipo: {
-    fontSize: 11,
-    marginTop: 2,
-    fontWeight: "600",
-  },
-  cardLocal: {
-    fontSize: 11,
-    color: "#666",
-    marginTop: 2,
-  },
-  cardRecorrente: {
-    fontSize: 14,
-    marginLeft: 8,
-  },
-  semEventos: {
-    alignItems: "center",
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  semEventosText: {
-    fontSize: 14,
-    color: "#6C757D",
-  },
+  cardDataCol: { width: 60, alignItems: "center", marginRight: 10 },
+  cardData: { fontSize: 12, fontWeight: "600", textTransform: "capitalize" },
+  cardHora: { fontSize: 13, fontWeight: "bold", marginTop: 2 },
+  cardInfo: { flex: 1 },
+  cardTituloRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  cardTitulo: { flex: 1, fontSize: 15, fontWeight: "700", color: "#222" },
+  cardLockIcon: { fontSize: 13 },
+  cardTipo: { fontSize: 11, marginTop: 2, fontWeight: "600" },
+  cardLocal: { fontSize: 11, color: "#666", marginTop: 2 },
+  cardRecorrente: { fontSize: 14, marginLeft: 8 },
+  semEventos: { alignItems: "center", marginTop: 20, marginBottom: 10 },
+  semEventosText: { fontSize: 14, color: "#6C757D" },
   agendaButton: {
     position: "absolute",
     bottom: 60,
@@ -762,15 +599,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     elevation: 4,
   },
-  agendaButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  feed: {
-    flex: 1,
-    marginBottom: 110,
-  },
+  agendaButtonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  feed: { flex: 1, marginBottom: 110 },
 });
 
 export default HomeScreen;

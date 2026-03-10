@@ -20,11 +20,9 @@ import { IUsuario } from "../../../../domain/models/IUsuario";
 import { Picker } from "@react-native-picker/picker";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { gerarSenhaProvisoria } from "../../../../infra/services/SupabaseUsuarioService";
 
-type UsuarioDataToCreate = Pick<
-  IUsuario,
-  "nome" | "email" | "localizacao_id" | "is_admin"
->;
+type UsuarioDataToCreate = Pick<IUsuario, "nome" | "email" | "localizacao_id" | "is_admin">;
 
 type OnCreateSave = (
   novoUsuario: UsuarioDataToCreate,
@@ -55,26 +53,17 @@ export const UsuarioCreateModal: React.FC<UsuarioCreateModalProps> = ({
 
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
-  const [confirmarSenha, setConfirmarSenha] = useState("");
-  const [senhaVisivel, setSenhaVisivel] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  // Inicializa com o primeiro id real da lista, ou null se vazia
   const [localizacaoId, setLocalizacaoId] = useState<string | null>(
     congregacoes[0]?.id ?? null,
   );
   const [selectedCargoIds, setSelectedCargoIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Reinicia o formulário ao abrir — e garante que localizacaoId
-  // aponta para um valor válido da lista atual
   useEffect(() => {
     if (isVisible) {
       setNome("");
       setEmail("");
-      setSenha("");
-      setConfirmarSenha("");
-      setSenhaVisivel(false);
       setIsAdmin(false);
       setLocalizacaoId(congregacoes[0]?.id ?? null);
       setSelectedCargoIds([]);
@@ -89,18 +78,12 @@ export const UsuarioCreateModal: React.FC<UsuarioCreateModalProps> = ({
   };
 
   const handleSave = async () => {
-    if (!nome.trim() || !email.trim() || !senha) {
-      Alert.alert("Campos obrigatórios", "Nome, e-mail e senha são obrigatórios.");
+    if (!nome.trim() || !email.trim()) {
+      Alert.alert("Campos obrigatórios", "Nome e e-mail são obrigatórios.");
       return;
     }
-    if (senha.length < 6) {
-      Alert.alert("Senha inválida", "A senha deve ter pelo menos 6 caracteres.");
-      return;
-    }
-    if (senha !== confirmarSenha) {
-      Alert.alert("Confirmação de senha", "As senhas digitadas não são idênticas.");
-      return;
-    }
+
+    const senha = gerarSenhaProvisoria(nome.trim());
 
     setIsSaving(true);
     try {
@@ -108,6 +91,12 @@ export const UsuarioCreateModal: React.FC<UsuarioCreateModalProps> = ({
         { nome: nome.trim(), email: email.trim(), is_admin: isAdmin, localizacao_id: localizacaoId },
         selectedCargoIds,
         senha,
+      );
+      // Exibe a senha provisória UMA VEZ para o admin copiar e repassar
+      Alert.alert(
+        "✅ Membro criado com sucesso!",
+        `Senha provisória gerada:\n\n🔑  ${senha}\n\nRepasse esta senha ao membro. Ele será solicitado a criar uma nova senha no primeiro acesso.`,
+        [{ text: "Entendi", style: "default" }],
       );
       onClose();
     } catch (e) {
@@ -132,6 +121,15 @@ export const UsuarioCreateModal: React.FC<UsuarioCreateModalProps> = ({
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
+
+        {/* Aviso sobre senha automática */}
+        <View style={styles.infoBox}>
+          <Feather name="info" size={15} color="#0A3D62" style={{ marginTop: 1 }} />
+          <Text style={styles.infoText}>
+            A senha provisória será gerada automaticamente e exibida após o cadastro para você repassar ao membro.
+          </Text>
+        </View>
+
         <Text style={styles.label}>Nome Completo *</Text>
         <TextInput
           style={styles.input}
@@ -149,35 +147,6 @@ export const UsuarioCreateModal: React.FC<UsuarioCreateModalProps> = ({
           placeholder="email@exemplo.com"
           placeholderTextColor="#999"
           keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-
-        <Text style={styles.label}>Senha *</Text>
-        <View style={styles.senhaContainer}>
-          <TextInput
-            style={styles.senhaInput}
-            value={senha}
-            onChangeText={setSenha}
-            placeholder="Mínimo 6 caracteres"
-            placeholderTextColor="#999"
-            secureTextEntry={!senhaVisivel}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <TouchableOpacity onPress={() => setSenhaVisivel((v) => !v)} style={styles.senhaToggle}>
-            <Feather name={senhaVisivel ? "eye-off" : "eye"} size={20} color="#0A3D62" />
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.label}>Confirmar Senha *</Text>
-        <TextInput
-          style={styles.input}
-          value={confirmarSenha}
-          onChangeText={setConfirmarSenha}
-          placeholder="Repita a senha"
-          placeholderTextColor="#999"
-          secureTextEntry={!senhaVisivel}
           autoCapitalize="none"
           autoCorrect={false}
         />
@@ -257,14 +226,19 @@ const styles = StyleSheet.create({
     borderBottomColor: "#DCE0E6",
     backgroundColor: "#FFFFFF",
   },
-  headerTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#0A3D62",
-  },
+  headerTitle: { flex: 1, fontSize: 18, fontWeight: "700", color: "#0A3D62" },
   closeButton: { padding: 5 },
   content: { padding: 20, backgroundColor: "#F0F4F8" },
+  infoBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    backgroundColor: "#E3F2FD",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 4,
+  },
+  infoText: { flex: 1, fontSize: 13, color: "#0A3D62", lineHeight: 19 },
   label: {
     fontSize: 16,
     fontWeight: "600",
@@ -281,16 +255,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333",
   },
-  senhaContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#DCE0E6",
-    borderRadius: 8,
-  },
-  senhaInput: { flex: 1, padding: 12, fontSize: 16, color: "#333" },
-  senhaToggle: { padding: 12 },
   pickerContainer: {
     backgroundColor: "#fff",
     borderWidth: 1,

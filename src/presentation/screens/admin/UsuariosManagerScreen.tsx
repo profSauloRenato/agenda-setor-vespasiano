@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Feather } from "@expo/vector-icons";
 import { ICargo } from "../../../domain/models/ICargo";
 import { ILocalizacao } from "../../../domain/models/ILocalizacao";
 import { IUsuario } from "../../../domain/models/IUsuario";
@@ -19,6 +20,7 @@ import { UsuariosViewModel } from "../../view_models/UsuariosViewModel";
 import { UsuarioCreateModal } from "./components/UsuarioCreateModal";
 import { UsuarioEditModal } from "./components/UsuarioEditModal";
 import SafeScreen from "../../components/SafeScreen";
+import { useUsuarioService } from "../../../config/serviceLocator";
 
 type UsuarioDataToCreate = Pick<IUsuario, "nome" | "email" | "localizacao_id" | "is_admin">;
 
@@ -32,18 +34,18 @@ export const UsuariosManagerScreen: React.FC<UsuariosManagerScreenProps> = ({
   cargoUseCases,
 }) => {
   const { user } = useAuth();
+  const usuarioService = useUsuarioService();
+
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isCreationModalVisible, setIsCreationModalVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState<IUsuario | null>(null);
   const [availableCargos, setAvailableCargos] = useState<ICargo[]>([]);
   const [state, setState] = useState(usuariosViewModel.state);
 
-  // Sincroniza o estado local com o ViewModel
   useEffect(() => {
     setState(usuariosViewModel.state);
   }, [usuariosViewModel.state]);
 
-  // 1. Carregar usuários e localizações
   useEffect(() => {
     const loadData = async () => {
       if (!user) return;
@@ -60,7 +62,6 @@ export const UsuariosManagerScreen: React.FC<UsuariosManagerScreenProps> = ({
     loadData();
   }, [user]);
 
-  // 2. Carregar cargos disponíveis
   useEffect(() => {
     const loadCargos = async () => {
       try {
@@ -73,15 +74,12 @@ export const UsuariosManagerScreen: React.FC<UsuariosManagerScreenProps> = ({
     loadCargos();
   }, []);
 
-  // 3. Handlers
   const handleEdit = (usuario: IUsuario) => {
     setSelectedUser(usuario);
     setIsModalVisible(true);
   };
 
-  const handleAddUser = () => {
-    setIsCreationModalVisible(true);
-  };
+  const handleAddUser = () => setIsCreationModalVisible(true);
 
   const handleCreate = async (
     novoUsuario: UsuarioDataToCreate,
@@ -90,45 +88,32 @@ export const UsuariosManagerScreen: React.FC<UsuariosManagerScreenProps> = ({
   ) => {
     if (!user) return;
     try {
-      await usuariosViewModel.handleCreateUsuario(
-        user,
-        novoUsuario,
-        cargosIds,
-        senha,
-      );
+      await usuariosViewModel.handleCreateUsuario(user, novoUsuario, cargosIds, senha);
       setState({ ...usuariosViewModel.state });
       setIsCreationModalVisible(false);
-      Alert.alert("Sucesso", `Membro ${novoUsuario.nome} criado com sucesso!`);
     } catch (error) {
-      Alert.alert(
-        "Erro ao Criar Usuário",
-        usuariosViewModel.state.error || "Ocorreu uma falha na criação.",
-      );
+      Alert.alert("Erro ao Criar Usuário", usuariosViewModel.state.error || "Ocorreu uma falha na criação.");
     }
   };
 
-  const handleSave = async (
-    updatedUsuario: IUsuario,
-    novosCargosIds: string[],
-  ) => {
+  const handleSave = async (updatedUsuario: IUsuario, novosCargosIds: string[]) => {
     if (!user) return;
     try {
-      await usuariosViewModel.handleUpdateUsuario(
-        user,
-        updatedUsuario,
-        novosCargosIds,
-      );
+      await usuariosViewModel.handleUpdateUsuario(user, updatedUsuario, novosCargosIds);
       setState({ ...usuariosViewModel.state });
       setIsModalVisible(false);
-      Alert.alert(
-        "Sucesso",
-        `Membro ${updatedUsuario.nome} atualizado com sucesso!`,
-      );
+      Alert.alert("Sucesso", `Membro ${updatedUsuario.nome} atualizado com sucesso!`);
     } catch (error) {
-      Alert.alert(
-        "Erro ao Salvar",
-        usuariosViewModel.state.error || "Ocorreu uma falha na atualização.",
-      );
+      Alert.alert("Erro ao Salvar", usuariosViewModel.state.error || "Ocorreu uma falha na atualização.");
+    }
+  };
+
+  const handleResetSenha = async (userId: string, novaSenha: string) => {
+    await usuarioService.adminResetSenha(userId, novaSenha);
+    // Recarrega lista para atualizar badge de deve_trocar_senha
+    if (user) {
+      await usuariosViewModel.loadUsuarios(user);
+      setState({ ...usuariosViewModel.state });
     }
   };
 
@@ -147,11 +132,7 @@ export const UsuariosManagerScreen: React.FC<UsuariosManagerScreenProps> = ({
               await usuariosViewModel.handleDeleteUsuario(user, usuario.id);
               setState({ ...usuariosViewModel.state });
             } catch (error) {
-              Alert.alert(
-                "Erro ao Remover",
-                usuariosViewModel.state.error ||
-                "Ocorreu uma falha na remoção do usuário.",
-              );
+              Alert.alert("Erro ao Remover", usuariosViewModel.state.error || "Ocorreu uma falha na remoção do usuário.");
             }
           },
         },
@@ -162,7 +143,15 @@ export const UsuariosManagerScreen: React.FC<UsuariosManagerScreenProps> = ({
   const renderUserItem = ({ item }: { item: IUsuario }) => (
     <View style={styles.itemContainer}>
       <View style={styles.topInfoContainer}>
-        <Text style={styles.userName}>{item.nome}</Text>
+        <View style={styles.nameRow}>
+          <Text style={styles.userName}>{item.nome}</Text>
+          {item.deve_trocar_senha && (
+            <View style={styles.provisoriaBadge}>
+              <Feather name="clock" size={11} color="#856404" />
+              <Text style={styles.provisoriaText}>Senha provisória</Text>
+            </View>
+          )}
+        </View>
         <Text style={styles.userCargos}>
           {`Cargos: ${(item.cargos || []).map((c) => c.nome).join(", ") || "Nenhum"}`}
         </Text>
@@ -174,13 +163,7 @@ export const UsuariosManagerScreen: React.FC<UsuariosManagerScreenProps> = ({
         <View style={styles.bottomInfoColumn}>
           <Text style={styles.userEmail}>{item.email}</Text>
           <Text style={styles.userStatus}>
-            <Text
-              style={
-                item.is_admin
-                  ? styles.userAdminStatus
-                  : styles.userMemberStatus
-              }
-            >
+            <Text style={item.is_admin ? styles.userAdminStatus : styles.userMemberStatus}>
               {item.is_admin ? "ADMINISTRADOR" : "MEMBRO PADRÃO"}
             </Text>
           </Text>
@@ -188,10 +171,7 @@ export const UsuariosManagerScreen: React.FC<UsuariosManagerScreenProps> = ({
         <View style={styles.actionsContainer}>
           <TouchableOpacity
             onPress={() => handleEdit(item)}
-            style={[
-              styles.actionButton,
-              { backgroundColor: "#FFC107", marginRight: 8 },
-            ]}
+            style={[styles.actionButton, { backgroundColor: "#FFC107", marginRight: 8 }]}
           >
             <Text style={styles.actionButtonText}>Editar</Text>
           </TouchableOpacity>
@@ -207,13 +187,7 @@ export const UsuariosManagerScreen: React.FC<UsuariosManagerScreenProps> = ({
   );
 
   if (state.isLoading) {
-    return (
-      <ActivityIndicator
-        size="large"
-        style={styles.centerContainer}
-        color="#0A3D62"
-      />
-    );
+    return <ActivityIndicator size="large" style={styles.centerContainer} color="#0A3D62" />;
   }
 
   if (state.error) {
@@ -269,6 +243,7 @@ export const UsuariosManagerScreen: React.FC<UsuariosManagerScreenProps> = ({
           availableCargos={availableCargos}
           availableLocalizacoes={state.localizacoesDisponiveis as ILocalizacao[]}
           onSave={handleSave}
+          onResetSenha={handleResetSenha}
         />
       )}
 
@@ -286,28 +261,10 @@ export const UsuariosManagerScreen: React.FC<UsuariosManagerScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: "#F0F4F8",
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#F0F4F8",
-  },
-  headerContainer: {
-    paddingHorizontal: 0,
-    paddingVertical: 15,
-    backgroundColor: "#F0F4F8",
-  },
-  header: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#0A3D62",
-    marginBottom: 15,
-  },
+  container: { flex: 1, padding: 20, backgroundColor: "#F0F4F8" },
+  centerContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#F0F4F8" },
+  headerContainer: { paddingVertical: 15, backgroundColor: "#F0F4F8" },
+  header: { fontSize: 22, fontWeight: "bold", color: "#0A3D62", marginBottom: 15 },
   addButton: {
     backgroundColor: "#17A2B8",
     paddingVertical: 12,
@@ -317,14 +274,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     elevation: 2,
   },
-  addButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  listContent: {
-    paddingBottom: 20,
-  },
+  addButtonText: { color: "#FFFFFF", fontWeight: "bold", fontSize: 16 },
   itemContainer: {
     padding: 15,
     backgroundColor: "#FFFFFF",
@@ -336,9 +286,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 1,
   },
-  topInfoContainer: {
-    marginBottom: 10,
+  topInfoContainer: { marginBottom: 10 },
+  nameRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 2 },
+  userName: { fontSize: 18, fontWeight: "600", color: "#333" },
+  provisoriaBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#FFF3CD",
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: "#FFEAA7",
   },
+  provisoriaText: { fontSize: 11, color: "#856404", fontWeight: "600" },
   detailsAndActionsContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -347,72 +309,17 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#EEE",
   },
-  bottomInfoColumn: {
-    flex: 1,
-    marginRight: 10,
-  },
-  userInfo: {
-    flex: 1,
-    marginRight: 10,
-  },
-  userName: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-  },
-  userEmail: {
-    fontSize: 14,
-    color: "#6C757D",
-  },
-  userAdminStatus: {
-    fontWeight: "bold",
-    color: "#DC3545",
-  },
-  userMemberStatus: {
-    fontWeight: "500",
-    color: "#6C757D",
-  },
-  userStatus: {
-    marginTop: 5,
-  },
-  userLocation: {
-    fontSize: 14,
-    color: "#6C757D",
-    marginTop: 4,
-  },
-  userCargos: {
-    fontSize: 14,
-    color: "#0A3D62",
-    fontWeight: "500",
-    marginTop: 5,
-  },
-  actionsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  actionButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 5,
-  },
-  actionButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "bold",
-    fontSize: 14,
-  },
-  errorText: {
-    fontSize: 18,
-    color: "#DC3545",
-    textAlign: "center",
-    marginBottom: 20,
-  },
-  refreshButton: {
-    backgroundColor: "#0A3D62",
-    padding: 10,
-    borderRadius: 5,
-  },
-  refreshButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "bold",
-  },
+  bottomInfoColumn: { flex: 1, marginRight: 10 },
+  userEmail: { fontSize: 14, color: "#6C757D" },
+  userAdminStatus: { fontWeight: "bold", color: "#DC3545" },
+  userMemberStatus: { fontWeight: "500", color: "#6C757D" },
+  userStatus: { marginTop: 5 },
+  userLocation: { fontSize: 14, color: "#6C757D", marginTop: 4 },
+  userCargos: { fontSize: 14, color: "#0A3D62", fontWeight: "500", marginTop: 5 },
+  actionsContainer: { flexDirection: "row", alignItems: "center" },
+  actionButton: { paddingVertical: 8, paddingHorizontal: 10, borderRadius: 5 },
+  actionButtonText: { color: "#FFFFFF", fontWeight: "bold", fontSize: 14 },
+  errorText: { fontSize: 18, color: "#DC3545", textAlign: "center", marginBottom: 20 },
+  refreshButton: { backgroundColor: "#0A3D62", padding: 10, borderRadius: 5 },
+  refreshButtonText: { color: "#FFFFFF", fontWeight: "bold" },
 });

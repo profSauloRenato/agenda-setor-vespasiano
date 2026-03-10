@@ -35,7 +35,9 @@ export interface IUsuarioService {
    */
   updateCargos(userId: string, novosCargosIds: string[]): Promise<void>;
 
-  updateSenha(userId: string, novaSenha: string): Promise<void>;
+  updateSenha(novaSenha: string): Promise<void>;
+  marcarSenhaTrocada(userId: string): Promise<void>;
+  adminResetSenha(userId: string, novaSenha: string): Promise<void>;
 
   /**
    * Deleta um usuário do sistema.

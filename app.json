@@ -3,6 +3,7 @@
     "name": "Agenda Setor",
     "slug": "agenda-setor-vespasiano",
     "version": "1.0.0",
+    "scheme": "com.setorvespasiano.agenda",
     "orientation": "portrait",
     "icon": "./src/presentation/assets/icon.png",
     "userInterfaceStyle": "light",
@@ -33,7 +34,19 @@
         "android.permission.VIBRATE",
         "android.permission.POST_NOTIFICATIONS"
       ],
-      "userInterfaceStyle": "light"
+      "userInterfaceStyle": "light",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "com.setorvespasiano.agenda"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "favicon": "./src/presentation/assets/favicon.png"
@@ -43,7 +56,9 @@
       "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwdWV6bHlna2JvaHVkcHhzbGJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0NzU4MDEsImV4cCI6MjA3ODA1MTgwMX0.Es8TYazB5lh3MQJr0rBHy27SAlapol91NgJvPjrl9r4",
       "eas": {
         "projectId": "67dbb0ff-e592-44fc-9f82-1678280aeec7"
-      }
+      },
+      "appEnv": "production",
+      "devIp": "10.0.0.144"
     },
     "plugins": [
       "expo-secure-store",

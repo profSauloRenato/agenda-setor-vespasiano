@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ICargo } from "../../../../domain/models/ICargo";
 import { ILocalizacao } from "../../../../domain/models/ILocalizacao";
 import { IUsuario } from "../../../../domain/models/IUsuario";
+import { gerarSenhaProvisoria } from "../../../../infra/services/SupabaseUsuarioService";
 
 interface UsuarioEditModalProps {
   isVisible: boolean;
@@ -27,11 +28,8 @@ interface UsuarioEditModalProps {
   usuario: IUsuario;
   availableCargos: ICargo[];
   availableLocalizacoes: ILocalizacao[];
-  onSave: (
-    updatedUsuario: IUsuario,
-    novosCargosIds: string[],
-    novaSenha?: string,
-  ) => Promise<void>;
+  onSave: (updatedUsuario: IUsuario, novosCargosIds: string[]) => Promise<void>;
+  onResetSenha: (userId: string, novaSenha: string) => Promise<void>;
 }
 
 export const UsuarioEditModal: React.FC<UsuarioEditModalProps> = ({
@@ -41,17 +39,14 @@ export const UsuarioEditModal: React.FC<UsuarioEditModalProps> = ({
   availableCargos,
   availableLocalizacoes,
   onSave,
+  onResetSenha,
 }) => {
   const [nome, setNome] = useState(usuario.nome);
-  const [email, setEmail] = useState(usuario.email);
   const [isAdmin, setIsAdmin] = useState(usuario.is_admin);
-  const [localizacaoId, setLocalizacaoId] = useState<string | null>(
-    usuario.localizacao_id || null,
-  );
+  const [localizacaoId, setLocalizacaoId] = useState<string | null>(usuario.localizacao_id || null);
   const [selectedCargosIds, setSelectedCargosIds] = useState<string[]>([]);
-  const [novaSenha, setNovaSenha] = useState("");
-  const [senhaVisivel, setSenhaVisivel] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   const insets = useSafeAreaInsets();
 
@@ -62,20 +57,15 @@ export const UsuarioEditModal: React.FC<UsuarioEditModalProps> = ({
   useEffect(() => {
     if (usuario) {
       setNome(usuario.nome);
-      setEmail(usuario.email);
       setIsAdmin(usuario.is_admin);
       setLocalizacaoId(usuario.localizacao_id || null);
       setSelectedCargosIds((usuario.cargos || []).map((c) => c.id));
-      setNovaSenha("");
-      setSenhaVisivel(false);
     }
   }, [usuario]);
 
   const toggleCargoSelection = (cargoId: string) => {
     setSelectedCargosIds((prev) =>
-      prev.includes(cargoId)
-        ? prev.filter((id) => id !== cargoId)
-        : [...prev, cargoId],
+      prev.includes(cargoId) ? prev.filter((id) => id !== cargoId) : [...prev, cargoId],
     );
   };
 
@@ -84,30 +74,48 @@ export const UsuarioEditModal: React.FC<UsuarioEditModalProps> = ({
       Alert.alert("Erro", "O nome do usuário não pode ser vazio.");
       return;
     }
-    if (novaSenha.length > 0 && novaSenha.length < 6) {
-      Alert.alert("Erro", "A nova senha deve ter pelo menos 6 caracteres.");
-      return;
-    }
-
     setIsSaving(true);
     try {
-      const updatedUsuario: IUsuario = {
-        ...usuario,
-        nome: nome.trim(),
-        email,
-        is_admin: isAdmin,
-        localizacao_id: localizacaoId,
-      };
       await onSave(
-        updatedUsuario,
+        { ...usuario, nome: nome.trim(), is_admin: isAdmin, localizacao_id: localizacaoId },
         selectedCargosIds,
-        novaSenha.length > 0 ? novaSenha : undefined,
       );
     } catch (error) {
       console.error("Erro ao salvar no modal:", error);
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleResetSenha = () => {
+    const novaSenha = gerarSenhaProvisoria(usuario.nome);
+
+    Alert.alert(
+      "Redefinir Senha",
+      `Gerar nova senha provisória para ${usuario.nome}?\n\nA senha será:\n🔑  ${novaSenha}\n\nO membro precisará trocá-la no próximo acesso.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Redefinir",
+          style: "destructive",
+          onPress: async () => {
+            setIsResetting(true);
+            try {
+              await onResetSenha(usuario.id, novaSenha);
+              Alert.alert(
+                "✅ Senha redefinida",
+                `Nova senha provisória:\n\n🔑  ${novaSenha}\n\nRepasse ao membro.`,
+                [{ text: "Entendi" }],
+              );
+            } catch (e) {
+              Alert.alert("Erro", (e as Error).message || "Falha ao redefinir senha.");
+            } finally {
+              setIsResetting(false);
+            }
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -127,6 +135,17 @@ export const UsuarioEditModal: React.FC<UsuarioEditModalProps> = ({
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
+
+        {/* Aviso de senha provisória ainda ativa */}
+        {usuario.deve_trocar_senha && (
+          <View style={styles.warningBox}>
+            <Feather name="alert-triangle" size={15} color="#856404" style={{ marginTop: 1 }} />
+            <Text style={styles.warningText}>
+              Este membro ainda não trocou a senha provisória.
+            </Text>
+          </View>
+        )}
+
         <Text style={styles.label}>Nome</Text>
         <TextInput
           style={styles.input}
@@ -137,38 +156,8 @@ export const UsuarioEditModal: React.FC<UsuarioEditModalProps> = ({
         />
 
         <Text style={styles.label}>E-mail (não editável)</Text>
-        <TextInput
-          style={[styles.input, styles.disabledInput]}
-          value={email}
-          editable={false}
-        />
-
-        {/* ── NOVA SENHA ── */}
-        <Text style={styles.label}>Nova senha</Text>
-        <Text style={styles.hint}>
-          Deixe em branco para manter a senha atual.
-        </Text>
-        <View style={styles.senhaContainer}>
-          <TextInput
-            style={styles.senhaInput}
-            value={novaSenha}
-            onChangeText={setNovaSenha}
-            placeholder="Digite a nova senha (mín. 6 caracteres)"
-            placeholderTextColor="#999"
-            secureTextEntry={!senhaVisivel}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <TouchableOpacity
-            onPress={() => setSenhaVisivel((v) => !v)}
-            style={styles.senhaToggle}
-          >
-            <Feather
-              name={senhaVisivel ? "eye-off" : "eye"}
-              size={20}
-              color="#0A3D62"
-            />
-          </TouchableOpacity>
+        <View style={[styles.input, styles.disabledInput]}>
+          <Text style={styles.disabledText}>{usuario.email}</Text>
         </View>
 
         <Text style={styles.label}>Localização (Congregação)</Text>
@@ -176,11 +165,7 @@ export const UsuarioEditModal: React.FC<UsuarioEditModalProps> = ({
           <Picker
             selectedValue={localizacaoId}
             onValueChange={(v: string | null) => setLocalizacaoId(v)}
-            style={
-              Platform.OS === "android"
-                ? styles.pickerAndroid
-                : styles.pickerIOS
-            }
+            style={Platform.OS === "android" ? styles.pickerAndroid : styles.pickerIOS}
             itemStyle={Platform.OS === "ios" ? styles.pickerItemIOS : undefined}
           >
             <Picker.Item label="Nenhuma Localização" value={null} color="#6C757D" />
@@ -200,9 +185,7 @@ export const UsuarioEditModal: React.FC<UsuarioEditModalProps> = ({
           />
         </View>
 
-        <Text style={[styles.label, styles.sectionTitle]}>
-          Atribuição de Cargos
-        </Text>
+        <Text style={[styles.label, styles.sectionTitle]}>Atribuição de Cargos</Text>
         <View style={styles.cargosList}>
           {availableCargos.map((cargo) => {
             const isSelected = selectedCargosIds.includes(cargo.id);
@@ -212,25 +195,38 @@ export const UsuarioEditModal: React.FC<UsuarioEditModalProps> = ({
                 style={[styles.cargoItem, isSelected && styles.cargoItemSelected]}
                 onPress={() => toggleCargoSelection(cargo.id)}
               >
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Feather
-                    name={isSelected ? "check-square" : "square"}
-                    size={18}
-                    color={isSelected ? "#fff" : "#0A3D62"}
-                  />
-                  <Text
-                    style={[styles.cargoText, isSelected && styles.cargoTextSelected]}
-                  >
-                    {cargo.nome}
-                  </Text>
-                </View>
+                <Feather
+                  name={isSelected ? "check-square" : "square"}
+                  size={18}
+                  color={isSelected ? "#fff" : "#0A3D62"}
+                />
+                <Text style={[styles.cargoText, isSelected && styles.cargoTextSelected]}>
+                  {cargo.nome}
+                </Text>
               </TouchableOpacity>
             );
           })}
         </View>
+
+        {/* Redefinir senha */}
+        <TouchableOpacity
+          style={[styles.resetButton, isResetting && { opacity: 0.6 }]}
+          onPress={handleResetSenha}
+          disabled={isResetting}
+        >
+          {isResetting ? (
+            <ActivityIndicator color="#DC3545" size="small" />
+          ) : (
+            <>
+              <Feather name="refresh-cw" size={15} color="#DC3545" />
+              <Text style={styles.resetButtonText}>Redefinir senha do membro</Text>
+            </>
+          )}
+        </TouchableOpacity>
+
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom }]}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom || 15 }]}>
         <TouchableOpacity
           style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
           onPress={handleSavePress}
@@ -256,27 +252,27 @@ const styles = StyleSheet.create({
     borderBottomColor: "#DCE0E6",
     backgroundColor: "#FFFFFF",
   },
-  headerTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#0A3D62",
-    marginRight: 10,
-  },
+  headerTitle: { flex: 1, fontSize: 18, fontWeight: "700", color: "#0A3D62", marginRight: 10 },
   closeButton: { padding: 5 },
   content: { padding: 20, backgroundColor: "#F0F4F8" },
+  warningBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    backgroundColor: "#FFF3CD",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: "#FFEAA7",
+  },
+  warningText: { flex: 1, fontSize: 13, color: "#856404", lineHeight: 19 },
   label: {
     fontSize: 16,
     fontWeight: "600",
     marginTop: 15,
     marginBottom: 5,
     color: "#0A3D62",
-  },
-  hint: {
-    fontSize: 12,
-    color: "#6C757D",
-    marginBottom: 6,
-    marginTop: -4,
   },
   input: {
     backgroundColor: "#fff",
@@ -287,27 +283,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333",
   },
-  disabledInput: {
-    backgroundColor: "#E9ECEF",
-    color: "#6C757D",
-  },
-  senhaContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#DCE0E6",
-    borderRadius: 8,
-  },
-  senhaInput: {
-    flex: 1,
-    padding: 12,
-    fontSize: 16,
-    color: "#333",
-  },
-  senhaToggle: {
-    padding: 12,
-  },
+  disabledInput: { backgroundColor: "#E9ECEF", justifyContent: "center" },
+  disabledText: { fontSize: 16, color: "#6C757D" },
   pickerContainer: {
     backgroundColor: "#fff",
     borderWidth: 1,
@@ -328,17 +305,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#DCE0E6",
   },
-  sectionTitle: {
-    fontSize: 18,
-    marginTop: 25,
-    marginBottom: 10,
-    color: "#333",
-  },
-  cargosList: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: 10,
-  },
+  sectionTitle: { fontSize: 18, marginTop: 25, marginBottom: 10, color: "#333" },
+  cargosList: { flexDirection: "row", flexWrap: "wrap", marginTop: 10 },
   cargoItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -351,15 +319,24 @@ const styles = StyleSheet.create({
     marginRight: 8,
     marginBottom: 8,
   },
-  cargoItemSelected: {
-    backgroundColor: "#0A3D62",
-    borderColor: "#0A3D62",
-  },
+  cargoItemSelected: { backgroundColor: "#0A3D62", borderColor: "#0A3D62" },
   cargoText: { marginLeft: 8, fontSize: 14, color: "#0A3D62" },
   cargoTextSelected: { color: "#fff" },
+  resetButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 24,
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#DC3545",
+    backgroundColor: "#FFF5F5",
+    justifyContent: "center",
+  },
+  resetButtonText: { fontSize: 14, color: "#DC3545", fontWeight: "600" },
   footer: {
     padding: 15,
-    paddingBottom: 0,
     borderTopWidth: 1,
     borderTopColor: "#DCE0E6",
     backgroundColor: "#FFFFFF",

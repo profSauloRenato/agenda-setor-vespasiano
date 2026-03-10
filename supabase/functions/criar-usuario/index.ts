@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
     }
 
     // Parâmetros do body
-    const { p_email, p_password, p_nome, p_is_admin, p_localizacao_id, p_cargos_ids } = await req.json();
+    const { p_email, p_password, p_nome, p_is_admin, p_localizacao_id, p_cargos_ids, p_deve_trocar_senha } = await req.json();
 
     if (!p_email || !p_password || !p_nome) {
       return new Response(JSON.stringify({ error: "E-mail, senha e nome são obrigatórios." }), { status: 400 });
@@ -75,6 +75,7 @@ Deno.serve(async (req) => {
         nome: p_nome,
         is_admin: p_is_admin ?? false,
         localizacao_id: p_localizacao_id ?? null,
+        deve_trocar_senha: p_deve_trocar_senha ?? true,
       });
 
     if (profileError) {

@@ -13,27 +13,21 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-
-// Importa o ViewModel e o Use Case
 import { useLoginUseCase, useNotificationService } from '../../config/serviceLocator';
 import { useLoginViewModel } from '../view_models/LoginViewModel';
 import { supabase } from '../../config/supabaseClient';
+import { RESET_PASSWORD_REDIRECT } from '../../config/env'
 
-// --- DEFINIÇÕES DE ESTILO TEMÁTICO ---
 const COLORS = {
-  primaryBlue: '#0A3D62', // Azul Marinho (Identidade Visual)
+  primaryBlue: '#0A3D62',
   lightGray: '#F0F0F0',
   white: '#FFFFFF',
   errorRed: '#DC3545',
 };
 
-// Componente Principal da Tela de Login
 const LoginScreen: React.FC = () => {
-  // Injeção do Use Case via Service Locator
   const loginUserUseCase = useLoginUseCase();
   const notificationService = useNotificationService();
-
-  // Criação do ViewModel (com a dependência injetada)
   const { state, setField, handleLogin } = useLoginViewModel(loginUserUseCase, notificationService);
 
   const handleEsqueceuSenha = async () => {
@@ -44,18 +38,14 @@ const LoginScreen: React.FC = () => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(
         state.email.trim(),
-        { redirectTo: "com.setorvespasiano.agenda://reset-password" }
+        { redirectTo: RESET_PASSWORD_REDIRECT }
       );
-      if (error) {
-        console.log("Supabase error completo:", JSON.stringify(error, null, 2));
-        throw error;
-      }
+      if (error) throw error;
       Alert.alert(
         "E-mail enviado",
         "Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha."
       );
     } catch (e: any) {
-      console.log("Catch error completo:", JSON.stringify(e, null, 2));
       Alert.alert("Erro", e?.message ?? "Falha ao enviar e-mail de recuperação.");
     }
   };
@@ -68,16 +58,14 @@ const LoginScreen: React.FC = () => {
       >
         <View style={styles.container}>
 
-          {/* LOGO E TÍTULO */}
           <Image
-            source={require('../assets/icon.png')} // Usando o ícone do projeto como placeholder
+            source={require('../assets/icon.png')}
             style={styles.logo}
             resizeMode="contain"
           />
           <Text style={styles.title}>Agenda Setor</Text>
           <Text style={styles.subtitle}>Acesso Restrito</Text>
 
-          {/* CAMPO EMAIL */}
           <TextInput
             style={styles.input}
             placeholder="E-mail"
@@ -89,7 +77,6 @@ const LoginScreen: React.FC = () => {
             editable={!state.isLoading}
           />
 
-          {/* CAMPO SENHA */}
           <TextInput
             style={styles.input}
             placeholder="Senha"
@@ -100,12 +87,10 @@ const LoginScreen: React.FC = () => {
             editable={!state.isLoading}
           />
 
-          {/* MENSAGEM DE ERRO (Tratada pelo ViewModel) */}
           {state.error && (
             <Text style={styles.errorText}>{state.error}</Text>
           )}
 
-          {/* BOTÃO DE LOGIN */}
           <TouchableOpacity
             style={[styles.button, state.isLoading && styles.buttonDisabled]}
             onPress={handleLogin}
@@ -118,14 +103,11 @@ const LoginScreen: React.FC = () => {
             )}
           </TouchableOpacity>
 
-          <View style={styles.linkButton}>
-            <Text style={styles.linkText}>
-              Esqueceu a senha?
-            </Text>
-            <Text style={styles.linkText}>
-              Fale com um administrador.
-            </Text>
-          </View>
+          {/* Botão de recuperação */}
+          <TouchableOpacity style={styles.forgotButton} onPress={handleEsqueceuSenha}>
+            <Text style={styles.forgotText}>Esqueceu a senha?</Text>
+          </TouchableOpacity>
+
         </View>
       </KeyboardAvoidingView>
     </View>
@@ -133,41 +115,17 @@ const LoginScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.white,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-    padding: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.white,
-  },
-  logo: {
-    width: 150,
-    height: 150,
-    marginBottom: 10,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.primaryBlue,
-    marginBottom: 5,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 40,
-  },
+  safeArea: { flex: 1, backgroundColor: COLORS.white },
+  keyboardView: { flex: 1 },
+  container: { flex: 1, padding: 24, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.white },
+  logo: { width: 150, height: 150, marginBottom: 10 },
+  title: { fontSize: 24, fontWeight: 'bold', color: COLORS.primaryBlue, marginBottom: 5 },
+  subtitle: { fontSize: 16, color: '#666', marginBottom: 40 },
   input: {
     width: '100%',
     height: 50,
     backgroundColor: COLORS.lightGray,
-    borderRadius: 10, // Cantos arredondados
+    borderRadius: 10,
     paddingHorizontal: 15,
     marginBottom: 15,
     fontSize: 16,
@@ -184,29 +142,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
   },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  buttonText: {
-    color: COLORS.white,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  errorText: {
-    width: '100%',
-    color: COLORS.errorRed,
-    textAlign: 'center',
-    marginBottom: 10,
-    fontSize: 14,
-  },
-  linkButton: {
-    marginTop: 20,
-  },
-  linkText: {
-    color: COLORS.primaryBlue,
-    fontSize: 14,
-    textAlign: 'center',
-  },
+  buttonDisabled: { opacity: 0.7 },
+  buttonText: { color: COLORS.white, fontSize: 18, fontWeight: 'bold' },
+  errorText: { width: '100%', color: COLORS.errorRed, textAlign: 'center', marginBottom: 10, fontSize: 14 },
+  forgotButton: { marginTop: 20, padding: 8 },
+  forgotText: { color: COLORS.primaryBlue, fontSize: 14, textDecorationLine: 'underline' },
 });
 
 export default LoginScreen;
