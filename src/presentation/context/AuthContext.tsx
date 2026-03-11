@@ -73,6 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      console.log("🔐 Auth event:", event);
       if (event === 'SIGNED_OUT') {
         setUser(null);
       }
