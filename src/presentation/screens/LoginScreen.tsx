@@ -31,6 +31,7 @@ const LoginScreen: React.FC = () => {
   const { state, setField, handleLogin } = useLoginViewModel(loginUserUseCase, notificationService);
 
   const handleEsqueceuSenha = async () => {
+    console.log("redirectTo:", RESET_PASSWORD_REDIRECT);
     if (!state.email.trim()) {
       Alert.alert("Atenção", "Digite seu e-mail no campo acima antes de continuar.");
       return;

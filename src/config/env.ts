@@ -13,4 +13,4 @@ export const isDev = appEnv === "development";
 
 export const RESET_PASSWORD_REDIRECT = isDev
   ? `exp://${DEV_IP}:8081/--/reset-password`
-  : "com.setorvespasiano.agenda://reset-password";
+  : "https://supabase-redirect-eight.vercel.app";
