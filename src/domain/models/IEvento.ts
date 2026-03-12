@@ -1,10 +1,10 @@
 // src/domain/models/IEvento.ts
 
 export const EVENTO_TIPOS_LISTA = [
-  "Reunião de Congregação",
-  "Reunião de Setor",
-  "Reunião de Administração",
-  "Reunião de Regional",
+  "Reunião Local",
+  "Reunião do Setor",
+  "Reunião da Administração",
+  "Reunião da Regional",
   "Evento Especial",
   "Culto",
 ] as const;

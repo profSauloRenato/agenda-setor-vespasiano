@@ -1,11 +1,13 @@
 // src/presentation/screens/admin/components/UsuarioCreateModal.tsx
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
+  Dimensions,
+  Keyboard,
   Modal,
-  Platform,
   ScrollView,
   StyleSheet,
   Switch,
@@ -14,12 +16,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ICargo } from "../../../../domain/models/ICargo";
 import { ILocalizacao } from "../../../../domain/models/ILocalizacao";
 import { IUsuario } from "../../../../domain/models/IUsuario";
-import { Picker } from "@react-native-picker/picker";
+import { SelectPicker, SelectPickerItem } from "../components/SelectPicker";
 import { Feather } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { gerarSenhaProvisoria } from "../../../../infra/services/SupabaseUsuarioService";
 
 type UsuarioDataToCreate = Pick<IUsuario, "nome" | "email" | "localizacao_id" | "is_admin">;
@@ -45,8 +47,6 @@ export const UsuarioCreateModal: React.FC<UsuarioCreateModalProps> = ({
   availableLocalizacoes,
   onSave,
 }) => {
-  const insets = useSafeAreaInsets();
-
   const congregacoes = availableLocalizacoes.filter(
     (loc) => loc?.tipo === "Congregação" && loc.nome?.length > 0,
   );
@@ -54,18 +54,39 @@ export const UsuarioCreateModal: React.FC<UsuarioCreateModalProps> = ({
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
-  const [localizacaoId, setLocalizacaoId] = useState<string | null>(
-    congregacoes[0]?.id ?? null,
-  );
+  const [localizacaoId, setLocalizacaoId] = useState<string | null>(null);
   const [selectedCargoIds, setSelectedCargoIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+
+  const insets = useSafeAreaInsets();
+  const screenHeight = Dimensions.get("window").height;
+  const keyboardOffset = useRef(new Animated.Value(0)).current;
+  const maxModalHeight = useRef(new Animated.Value(screenHeight * 0.92)).current;
+
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", (e) => {
+      const kh = e.endCoordinates.height;
+      const available = screenHeight - kh - insets.top - 16;
+      Animated.parallel([
+        Animated.timing(keyboardOffset, { toValue: kh, duration: e.duration || 250, useNativeDriver: false }),
+        Animated.timing(maxModalHeight, { toValue: available, duration: e.duration || 250, useNativeDriver: false }),
+      ]).start();
+    });
+    const hide = Keyboard.addListener("keyboardDidHide", () => {
+      Animated.parallel([
+        Animated.timing(keyboardOffset, { toValue: 0, duration: 250, useNativeDriver: false }),
+        Animated.timing(maxModalHeight, { toValue: screenHeight * 0.92, duration: 250, useNativeDriver: false }),
+      ]).start();
+    });
+    return () => { show.remove(); hide.remove(); };
+  }, [keyboardOffset, maxModalHeight]);
 
   useEffect(() => {
     if (isVisible) {
       setNome("");
       setEmail("");
       setIsAdmin(false);
-      setLocalizacaoId(congregacoes[0]?.id ?? null);
+      setLocalizacaoId(null);
       setSelectedCargoIds([]);
       setIsSaving(false);
     }
@@ -107,201 +128,105 @@ export const UsuarioCreateModal: React.FC<UsuarioCreateModalProps> = ({
   };
 
   return (
-    <Modal
-      visible={isVisible}
-      onRequestClose={onClose}
-      animationType="slide"
-      presentationStyle="pageSheet"
-    >
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Adicionar Novo Membro</Text>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Feather name="x" size={24} color="#0A3D62" />
-        </TouchableOpacity>
-      </View>
+    <Modal visible={isVisible} onRequestClose={onClose} animationType="slide" transparent={true}>
+      <View style={styles.overlay}>
+        <TouchableOpacity style={styles.dismissArea} activeOpacity={1} onPress={onClose} />
+        <Animated.View style={[styles.modalView, { marginBottom: keyboardOffset, maxHeight: maxModalHeight }]}>
 
-      <ScrollView contentContainerStyle={styles.content}>
+          <Text style={styles.modalTitle}>Adicionar Novo Membro</Text>
 
-        {/* Aviso sobre senha automática */}
-        <View style={styles.infoBox}>
-          <Feather name="info" size={15} color="#0A3D62" style={{ marginTop: 1 }} />
-          <Text style={styles.infoText}>
-            A senha provisória será gerada automaticamente e exibida após o cadastro para você repassar ao membro.
-          </Text>
-        </View>
+          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+            {/* Aviso sobre senha automática */}
+            <View style={styles.infoBox}>
+              <Feather name="info" size={15} color="#0A3D62" style={{ marginTop: 1 }} />
+              <Text style={styles.infoText}>
+                A senha provisória será gerada automaticamente e exibida após o cadastro para você repassar ao membro.
+              </Text>
+            </View>
 
-        <Text style={styles.label}>Nome Completo *</Text>
-        <TextInput
-          style={styles.input}
-          value={nome}
-          onChangeText={setNome}
-          placeholder="Nome completo"
-          placeholderTextColor="#999"
-        />
+            <Text style={styles.label}>Nome Completo *</Text>
+            <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Nome completo" placeholderTextColor="#999" />
 
-        <Text style={styles.label}>E-mail *</Text>
-        <TextInput
-          style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-          placeholder="email@exemplo.com"
-          placeholderTextColor="#999"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+            <Text style={styles.label}>E-mail *</Text>
+            <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="email@exemplo.com" placeholderTextColor="#999" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
 
-        <Text style={styles.label}>Localização (Congregação)</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={localizacaoId}
-            onValueChange={(v) => setLocalizacaoId(v as string | null)}
-            style={Platform.OS === "android" ? styles.pickerAndroid : styles.pickerIOS}
-            itemStyle={Platform.OS === "ios" ? styles.pickerItemIOS : undefined}
-          >
-            <Picker.Item label="Nenhuma (Opcional)" value={null} color="#6C757D" />
-            {congregacoes.map((loc) => (
-              <Picker.Item key={loc.id} label={loc.nome} value={loc.id} />
-            ))}
-          </Picker>
-        </View>
+            <Text style={styles.label}>Localização (Congregação)</Text>
+            <View style={styles.pickerContainer}>
+              <SelectPicker
+                selectedValue={localizacaoId}
+                onValueChange={(v) => setLocalizacaoId(v)}
+                items={[
+                  { label: "Nenhuma (Opcional)", value: null, color: "#6C757D" },
+                  ...congregacoes.map((loc) => ({ label: loc.nome, value: loc.id })),
+                ]}
+              />
+            </View>
 
-        <View style={styles.switchContainer}>
-          <Text style={styles.label}>É Administrador?</Text>
-          <Switch
-            value={isAdmin}
-            onValueChange={setIsAdmin}
-            trackColor={{ false: "#767577", true: "#0A3D62" }}
-            thumbColor={isAdmin ? "#fff" : "#f4f3f4"}
-          />
-        </View>
+            <View style={styles.switchContainer}>
+              <Text style={styles.label}>É Administrador?</Text>
+              <Switch value={isAdmin} onValueChange={setIsAdmin} trackColor={{ false: "#767577", true: "#0A3D62" }} thumbColor={isAdmin ? "#fff" : "#f4f3f4"} />
+            </View>
 
-        <Text style={[styles.label, { marginTop: 20 }]}>Cargos</Text>
-        <View style={styles.cargosList}>
-          {availableCargos.map((cargo) => {
-            const selected = selectedCargoIds.includes(cargo.id);
-            return (
-              <TouchableOpacity
-                key={cargo.id}
-                style={[styles.cargoItem, selected && styles.cargoItemSelected]}
-                onPress={() => toggleCargo(cargo.id)}
-              >
-                <Feather
-                  name={selected ? "check-square" : "square"}
-                  size={18}
-                  color={selected ? "#fff" : "#0A3D62"}
-                />
-                <Text style={[styles.cargoText, selected && styles.cargoTextSelected]}>
-                  {cargo.nome}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </ScrollView>
+            <Text style={[styles.label, { marginTop: 20 }]}>Cargos</Text>
+            <View style={styles.cargosList}>
+              {availableCargos.map((cargo) => {
+                const selected = selectedCargoIds.includes(cargo.id);
+                return (
+                  <TouchableOpacity key={cargo.id} style={[styles.cargoItem, selected && styles.cargoItemSelected]} onPress={() => toggleCargo(cargo.id)}>
+                    <Feather name={selected ? "check-square" : "square"} size={18} color={selected ? "#fff" : "#0A3D62"} />
+                    <Text style={[styles.cargoText, selected && styles.cargoTextSelected]}>{cargo.nome}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom || 15 }]}>
-        <TouchableOpacity
-          style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
-          onPress={handleSave}
-          disabled={isSaving}
-        >
-          {isSaving ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.saveButtonText}>Criar Membro</Text>
-          )}
-        </TouchableOpacity>
+          {/* Dois botões: Cancelar + Criar Membro */}
+          <View style={[styles.buttonContainer, { paddingBottom: insets.bottom || 12 }]}>
+            <TouchableOpacity style={[styles.button, styles.buttonCancel]} onPress={onClose} disabled={isSaving}>
+              <Text style={styles.buttonText}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.button, styles.buttonSave, isSaving && styles.buttonDisabled]} onPress={handleSave} disabled={isSaving}>
+              {isSaving ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Criar Membro</Text>}
+            </TouchableOpacity>
+          </View>
+
+        </Animated.View>
       </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#DCE0E6",
-    backgroundColor: "#FFFFFF",
+  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  dismissArea: { flex: 1 },
+  modalView: {
+    backgroundColor: "white",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    flexShrink: 1,       // encolhe para caber no maxHeight
   },
-  headerTitle: { flex: 1, fontSize: 18, fontWeight: "700", color: "#0A3D62" },
-  closeButton: { padding: 5 },
-  content: { padding: 20, backgroundColor: "#F0F4F8" },
-  infoBox: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
-    backgroundColor: "#E3F2FD",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 4,
-  },
+  titleRow: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
+  modalTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 15, color: "#0A3D62" },
+  closeButton: { padding: 4 },
+  content: { paddingBottom: 8 },
+  infoBox: { flexDirection: "row", alignItems: "flex-start", gap: 8, backgroundColor: "#E3F2FD", borderRadius: 8, padding: 12, marginBottom: 4 },
   infoText: { flex: 1, fontSize: 13, color: "#0A3D62", lineHeight: 19 },
-  label: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginTop: 15,
-    marginBottom: 5,
-    color: "#0A3D62",
-  },
-  input: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#DCE0E6",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: "#333",
-  },
-  pickerContainer: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#DCE0E6",
-    borderRadius: 8,
-    overflow: "hidden",
-  },
-  pickerAndroid: { height: 55, color: "#333" },
-  pickerIOS: { height: 150 },
-  pickerItemIOS: { fontSize: 16 },
-  switchContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 20,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#DCE0E6",
-  },
-  cargosList: { flexDirection: "row", flexWrap: "wrap", marginTop: 8 },
-  cargoItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#DCE0E6",
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginRight: 8,
-    marginBottom: 8,
-  },
+  label: { fontSize: 14, fontWeight: "600", marginTop: 14, marginBottom: 5, color: "#0A3D62" },
+  input: { backgroundColor: "#F9F9F9", borderWidth: 1, borderColor: "#DCE0E6", borderRadius: 8, padding: 10, fontSize: 14, color: "#333" },
+  pickerContainer: { backgroundColor: "#F9F9F9", borderWidth: 1, borderColor: "#DCE0E6", borderRadius: 8, overflow: "hidden" },
+  switchContainer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#DCE0E6" },
+  cargosList: { flexDirection: "row", flexWrap: "wrap", marginTop: 8, marginBottom: 4 },
+  cargoItem: { flexDirection: "row", alignItems: "center", backgroundColor: "#F9F9F9", borderWidth: 1, borderColor: "#DCE0E6", borderRadius: 20, paddingVertical: 7, paddingHorizontal: 12, marginRight: 8, marginBottom: 8 },
   cargoItemSelected: { backgroundColor: "#0A3D62", borderColor: "#0A3D62" },
-  cargoText: { marginLeft: 8, fontSize: 14, color: "#0A3D62" },
+  cargoText: { marginLeft: 6, fontSize: 13, color: "#0A3D62" },
   cargoTextSelected: { color: "#fff" },
-  footer: {
-    padding: 15,
-    borderTopWidth: 1,
-    borderTopColor: "#DCE0E6",
-    backgroundColor: "#FFFFFF",
-  },
-  saveButton: {
-    backgroundColor: "#28A745",
-    borderRadius: 8,
-    padding: 15,
-    alignItems: "center",
-  },
-  saveButtonDisabled: { backgroundColor: "#A5D6A7" },
-  saveButtonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
+  buttonContainer: { flexDirection: "row", gap: 10, marginTop: 14 },
+  button: { flex: 1, borderRadius: 8, padding: 13, alignItems: "center" },
+  buttonCancel: { backgroundColor: "#6C757D" },
+  buttonSave: { backgroundColor: "#28A745" },
+  buttonDisabled: { backgroundColor: "#A5D6A7" },
+  buttonText: { color: "#fff", fontSize: 15, fontWeight: "bold" },
 });

@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { Picker } from "@react-native-picker/picker";
+import { SelectPicker, SelectPickerItem } from "../admin/components/SelectPicker";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { IEvento } from "../../../domain/models/IEvento";
 import { ICargo } from "../../../domain/models/ICargo";
@@ -71,7 +71,7 @@ const EventoItem: React.FC<{
       )}
       {evento.tipo_abrangencia && (
         <Text style={styles.cardAbrangencia}>
-          {evento.tipo_abrangencia}
+          📣 {evento.tipo_abrangencia}
           {evento.nome_abrangencia ? `: ${evento.nome_abrangencia}` : ""}
         </Text>
       )}
@@ -321,15 +321,12 @@ export const EventosManagerScreen: React.FC<EventosManagerScreenProps> = ({
             <View style={styles.pickerRow}>
               <Text style={styles.pickerLabel}>Regional</Text>
               <View style={styles.pickerWrap}>
-                <Picker
+                <SelectPicker
                   selectedValue={filtroRegionalId}
-                  onValueChange={handleRegionalChange}
-                  style={styles.picker}
+                  onValueChange={(v: string | null) => handleRegionalChange(v ?? "todos")}
+                  items={[{ label: "Todas", value: "todos" }, ...regionais.map(r => ({ label: r.nome, value: r.id }))]}
                   dropdownIconColor="#17A2B8"
-                >
-                  <Picker.Item label="Todas" value="todos" />
-                  {regionais.map(r => <Picker.Item key={r.id} label={r.nome} value={r.id} />)}
-                </Picker>
+                />
               </View>
             </View>
 
@@ -337,16 +334,13 @@ export const EventosManagerScreen: React.FC<EventosManagerScreenProps> = ({
             <View style={styles.pickerRow}>
               <Text style={styles.pickerLabel}>Administração</Text>
               <View style={styles.pickerWrap}>
-                <Picker
+                <SelectPicker
                   selectedValue={filtroAdminId}
-                  onValueChange={handleAdminChange}
-                  style={styles.picker}
-                  dropdownIconColor="#17A2B8"
+                  onValueChange={(v: string | null) => handleAdminChange(v ?? "todos")}
+                  items={[{ label: "Todas", value: "todos" }, ...administracoes.map(a => ({ label: a.nome, value: a.id }))]}
                   enabled={administracoes.length > 0}
-                >
-                  <Picker.Item label="Todas" value="todos" />
-                  {administracoes.map(a => <Picker.Item key={a.id} label={a.nome} value={a.id} />)}
-                </Picker>
+                  dropdownIconColor="#17A2B8"
+                />
               </View>
             </View>
 
@@ -354,16 +348,13 @@ export const EventosManagerScreen: React.FC<EventosManagerScreenProps> = ({
             <View style={styles.pickerRow}>
               <Text style={styles.pickerLabel}>Setor</Text>
               <View style={styles.pickerWrap}>
-                <Picker
+                <SelectPicker
                   selectedValue={filtroSetorId}
-                  onValueChange={setFiltroSetorId}
-                  style={styles.picker}
-                  dropdownIconColor="#17A2B8"
+                  onValueChange={(v: string | null) => setFiltroSetorId(v ?? "todos")}
+                  items={[{ label: "Todos", value: "todos" }, ...setores.map(s => ({ label: s.nome, value: s.id }))]}
                   enabled={setores.length > 0}
-                >
-                  <Picker.Item label="Todos" value="todos" />
-                  {setores.map(s => <Picker.Item key={s.id} label={s.nome} value={s.id} />)}
-                </Picker>
+                  dropdownIconColor="#17A2B8"
+                />
               </View>
             </View>
 
@@ -371,15 +362,12 @@ export const EventosManagerScreen: React.FC<EventosManagerScreenProps> = ({
             <View style={styles.pickerRow}>
               <Text style={styles.pickerLabel}>Cargo</Text>
               <View style={styles.pickerWrap}>
-                <Picker
+                <SelectPicker
                   selectedValue={filtroCargoId}
-                  onValueChange={setFiltroCargoId}
-                  style={styles.picker}
+                  onValueChange={(v: string | null) => setFiltroCargoId(v ?? "todos")}
+                  items={[{ label: "Todos", value: "todos" }, ...cargosDisponiveis.map(c => ({ label: c.nome, value: c.id }))]}
                   dropdownIconColor="#17A2B8"
-                >
-                  <Picker.Item label="Todos" value="todos" />
-                  {cargosDisponiveis.map(c => <Picker.Item key={c.id} label={c.nome} value={c.id} />)}
-                </Picker>
+                />
               </View>
             </View>
 
@@ -565,7 +553,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     marginHorizontal: 15,
     marginTop: 15,
-    marginBottom: 10,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingTop: 14,

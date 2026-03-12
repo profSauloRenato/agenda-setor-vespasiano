@@ -44,7 +44,6 @@ export class SupabaseEventoService implements IEventoService {
       categoria_modelo: row.evento_modelo?.categoria ?? null,
       nome_localizacao: row.localizacao?.nome ?? null,
       nome_responsavel: row.responsavel?.nome ?? null,
-      // Abrangência enriquecida
       tipo_abrangencia: row.abrangencia?.tipo ?? null,
       nome_abrangencia: row.abrangencia?.nome ?? null,
       endereco_rua: row.localizacao?.endereco_rua ?? null,
@@ -53,7 +52,7 @@ export class SupabaseEventoService implements IEventoService {
       endereco_cidade: row.localizacao?.endereco_cidade ?? null,
       endereco_estado: row.localizacao?.endereco_estado ?? null,
       endereco_cep: row.localizacao?.endereco_cep ?? null,
-      nomes_cargos: row.cargos_nomes ?? [],
+      nomes_cargos: [], // preenchido por enriquecerNomesCargos
       alertas: (row.evento_alerta ?? []).map(
         (a: any): IEventoAlerta => ({
           id: a.id,
@@ -66,7 +65,6 @@ export class SupabaseEventoService implements IEventoService {
     };
   }
 
-  // Adicionado join em abrangencia_id para obter tipo e nome da abrangência
   private readonly SELECT_QUERY = `
     *,
     evento_modelo:modelo_id (id, nome, categoria),
@@ -75,6 +73,24 @@ export class SupabaseEventoService implements IEventoService {
     responsavel:responsavel_id (nome),
     evento_alerta (id, evento_id, horas_antes, enviado, enviado_em)
   `;
+
+  private async enriquecerNomesCargos(eventos: IEvento[]): Promise<IEvento[]> {
+    const todosIds = [...new Set(eventos.flatMap(e => e.cargos_visiveis))];
+    if (todosIds.length === 0) return eventos;
+
+    const { data: cargos } = await this.supabase
+      .from("cargo")
+      .select("id, nome")
+      .in("id", todosIds);
+
+    const mapaId: Record<string, string> = {};
+    (cargos ?? []).forEach((c: any) => { mapaId[c.id] = c.nome; });
+
+    return eventos.map(e => ({
+      ...e,
+      nomes_cargos: e.cargos_visiveis.map(id => mapaId[id]).filter(Boolean),
+    }));
+  }
 
   async getAllEventos(startDate?: string, endDate?: string): Promise<IEvento[]> {
     let query = this.supabase
@@ -87,7 +103,9 @@ export class SupabaseEventoService implements IEventoService {
 
     const { data, error } = await query;
     if (error) throw new Error(`Falha ao buscar eventos: ${error.message}`);
-    return (data ?? []).map(this.mapToIEvento.bind(this));
+
+    const mapped = (data ?? []).map(this.mapToIEvento.bind(this));
+    return this.enriquecerNomesCargos(mapped);
   }
 
   async getEventoById(id: string): Promise<IEvento> {
@@ -98,7 +116,8 @@ export class SupabaseEventoService implements IEventoService {
       .single();
 
     if (error) throw new Error(`Falha ao buscar evento: ${error.message}`);
-    return this.mapToIEvento(data);
+    const mapped = this.mapToIEvento(data);
+    return (await this.enriquecerNomesCargos([mapped]))[0];
   }
 
   async buscarEventos(params: {
@@ -137,7 +156,7 @@ export class SupabaseEventoService implements IEventoService {
       if (params.categoriaModelo) {
         eventos = eventos.filter((e) => e.categoria_modelo === params.categoriaModelo);
       }
-      return eventos;
+      return this.enriquecerNomesCargos(eventos);
     }
 
     let query = this.supabase
@@ -161,7 +180,7 @@ export class SupabaseEventoService implements IEventoService {
     if (params.categoriaModelo) {
       eventos = eventos.filter((e) => e.categoria_modelo === params.categoriaModelo);
     }
-    return eventos;
+    return this.enriquecerNomesCargos(eventos);
   }
 
   async createEvento(data: CreateEventoParams, criadoPorId: string): Promise<IEvento> {
@@ -199,7 +218,8 @@ export class SupabaseEventoService implements IEventoService {
       await this.saveAlertas(created.id, data.alertas);
     }
 
-    return this.mapToIEvento(created);
+    const mapped = this.mapToIEvento(created);
+    return (await this.enriquecerNomesCargos([mapped]))[0];
   }
 
   async updateEvento(data: UpdateEventoParams): Promise<IEvento> {
@@ -244,7 +264,8 @@ export class SupabaseEventoService implements IEventoService {
       }
     }
 
-    return this.mapToIEvento(updated);
+    const mapped = this.mapToIEvento(updated);
+    return (await this.enriquecerNomesCargos([mapped]))[0];
   }
 
   async deleteEvento(id: string): Promise<void> {

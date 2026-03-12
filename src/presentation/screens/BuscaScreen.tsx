@@ -11,7 +11,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Picker } from "@react-native-picker/picker";
 import { IEvento } from "../../domain/models/IEvento";
 import { IEventoModelo } from "../../domain/models/IEventoModelo";
 import { ILocalizacao } from "../../domain/models/ILocalizacao";
@@ -23,6 +22,7 @@ import {
 } from "../../config/serviceLocator";
 import EventoDetailsModal from "./admin/components/EventoDetailsModal";
 import SafeScreen from "../components/SafeScreen";
+import { SelectPicker, SelectPickerItem } from "../screens/admin/components/SelectPicker"
 
 // -------------------------------------------
 // PERÍODOS PRÉ-DEFINIDOS
@@ -121,8 +121,8 @@ const ModalFiltros: React.FC<{
 }> = ({ isVisible, onClose, onBuscar, modelos, localizacoes, cargos, isBuscando }) => {
   const [filtros, setFiltros] = useState<Filtros>(filtrosVazios);
 
-  const set = (key: keyof Filtros, value: string) =>
-    setFiltros((prev) => ({ ...prev, [key]: value }));
+  const set = (key: keyof Filtros, value: string | null) =>
+    setFiltros((prev) => ({ ...prev, [key]: value ?? "" }));
 
   const regionais = useMemo(
     () => localizacoes.filter((l) => l.tipo === "Regional").sort((a, b) => a.nome.localeCompare(b.nome)),
@@ -143,17 +143,56 @@ const ModalFiltros: React.FC<{
 
   const modelosEventos = modelos.filter((m) => m.categoria === "evento");
   const modelosReunioes = modelos.filter((m) => m.categoria === "reuniao_fixa");
-  const modelosFiltrados = !filtros.categoriaModelo
-    ? modelos
-    : modelos.filter((m) => m.categoria === filtros.categoriaModelo);
+
+  const tipoItems: SelectPickerItem[] = [
+    { label: "Todos os tipos", value: "" },
+    { label: "Eventos", value: "evento" },
+    { label: "Reuniões", value: "reuniao_fixa" },
+  ];
+
+  const modeloItems: SelectPickerItem[] = [
+    { label: "Todos", value: "" },
+    ...(!filtros.categoriaModelo || filtros.categoriaModelo === "evento"
+      ? modelosEventos.map((m) => ({ label: m.nome, value: m.id }))
+      : []),
+    ...(!filtros.categoriaModelo || filtros.categoriaModelo === "reuniao_fixa"
+      ? modelosReunioes.map((m) => ({ label: m.nome, value: m.id }))
+      : []),
+  ];
+
+  const periodoItems: SelectPickerItem[] = [
+    { label: "Qualquer período", value: "" },
+    ...PERIODOS.map((p) => ({ label: p.label, value: p.value })),
+  ];
+
+  const regionalItems: SelectPickerItem[] = [
+    { label: "Todas as Regionais", value: "" },
+    ...regionais.map((r) => ({ label: r.nome, value: r.id })),
+  ];
+
+  const administracaoItems: SelectPickerItem[] = [
+    { label: "Todas as Administrações", value: "" },
+    ...administracoes.map((a) => ({ label: a.nome, value: a.id })),
+  ];
+
+  const setorItems: SelectPickerItem[] = [
+    { label: "Todos os Setores", value: "" },
+    ...setores.map((s) => ({ label: s.nome, value: s.id })),
+  ];
+
+  const congregacaoItems: SelectPickerItem[] = [
+    { label: "Todas as Congregações do Setor", value: "" },
+    ...congregacoes.map((c) => ({ label: c.nome, value: c.id })),
+  ];
+
+  const cargoItems: SelectPickerItem[] = [
+    { label: "Todos os cargos", value: "" },
+    ...cargos.map((c) => ({ label: c.nome, value: c.id })),
+  ];
 
   const temFiltro = Object.values(filtros).some((v) => v !== "");
-
   const handleLimpar = () => setFiltros(filtrosVazios);
-
-  const handleBuscar = () => {
-    onBuscar(filtros);
-  };
+  const handleBuscar = () => { onBuscar(filtros); };
 
   return (
     <Modal visible={isVisible} animationType="slide" presentationStyle="pageSheet">
@@ -175,37 +214,31 @@ const ModalFiltros: React.FC<{
           {/* TIPO */}
           <Text style={styles.secaoTitulo}>Tipo</Text>
           <View style={styles.pickerBox}>
-            <Picker
+            <SelectPicker
               selectedValue={filtros.categoriaModelo}
-              onValueChange={(v) => { set("categoriaModelo", v); set("modeloId", ""); }}
-              mode="dropdown"
-              style={{ color: "#333" }}
-            >
-              <Picker.Item label="Todos os tipos" value="" />
-              <Picker.Item label="Eventos" value="evento" />
-              <Picker.Item label="Reuniões" value="reuniao_fixa" />
-            </Picker>
+              onValueChange={(v: string | null) => { set("categoriaModelo", v ?? ""); set("modeloId", ""); }}
+              items={tipoItems}
+            />
           </View>
 
           {/* NOME */}
           <Text style={styles.secaoTitulo}>Nome do evento / reunião</Text>
           <View style={styles.pickerBox}>
-            <Picker selectedValue={filtros.modeloId} onValueChange={(v) => set("modeloId", v)} mode="dropdown" style={{ color: "#333" }}>
-              <Picker.Item label="Todos" value="" />
-              {(!filtros.categoriaModelo || filtros.categoriaModelo === "evento") &&
-                modelosEventos.map((m) => <Picker.Item key={m.id} label={m.nome} value={m.id} />)}
-              {(!filtros.categoriaModelo || filtros.categoriaModelo === "reuniao_fixa") &&
-                modelosReunioes.map((m) => <Picker.Item key={m.id} label={m.nome} value={m.id} />)}
-            </Picker>
+            <SelectPicker
+              selectedValue={filtros.modeloId}
+              onValueChange={(v: string | null) => set("modeloId", v ?? "")}
+              items={modeloItems}
+            />
           </View>
 
           {/* PERÍODO */}
           <Text style={styles.secaoTitulo}>Período</Text>
           <View style={styles.pickerBox}>
-            <Picker selectedValue={filtros.periodoValue} onValueChange={(v) => set("periodoValue", v)} mode="dropdown" style={{ color: "#333" }}>
-              <Picker.Item label="Qualquer período" value="" />
-              {PERIODOS.map((p) => <Picker.Item key={p.value} label={p.label} value={p.value} />)}
-            </Picker>
+            <SelectPicker
+              selectedValue={filtros.periodoValue}
+              onValueChange={(v: string | null) => set("periodoValue", v ?? "")}
+              items={periodoItems}
+            />
           </View>
 
           {/* LOCALIZAÇÃO */}
@@ -213,75 +246,72 @@ const ModalFiltros: React.FC<{
 
           <Text style={styles.nivelLabel}>Regional</Text>
           <View style={styles.pickerBox}>
-            <Picker
+            <SelectPicker
               selectedValue={filtros.regionalId}
-              onValueChange={(v) => { set("regionalId", v); set("administracaoId", ""); set("setorId", ""); set("localizacaoId", ""); }}
-              mode="dropdown"
-              style={{ color: "#333" }}
-            >
-              <Picker.Item label="Todas as Regionais" value="" />
-              {regionais.map((r) => <Picker.Item key={r.id} label={r.nome} value={r.id} />)}
-            </Picker>
+              onValueChange={(v: string | null) => {
+                set("regionalId", v ?? "");
+                set("administracaoId", "");
+                set("setorId", "");
+                set("localizacaoId", "");
+              }}
+              items={regionalItems}
+            />
           </View>
 
-          {filtros.regionalId && (
+          {filtros.regionalId ? (
             <>
               <Text style={styles.nivelLabel}>Administração</Text>
               <View style={styles.pickerBox}>
-                <Picker
+                <SelectPicker
                   selectedValue={filtros.administracaoId}
-                  onValueChange={(v) => { set("administracaoId", v); set("setorId", ""); set("localizacaoId", ""); }}
-                  mode="dropdown"
-                  style={{ color: "#333" }}
-                >
-                  <Picker.Item label="Todas as Administrações" value="" />
-                  {administracoes.map((a) => <Picker.Item key={a.id} label={a.nome} value={a.id} />)}
-                </Picker>
+                  onValueChange={(v: string | null) => {
+                    set("administracaoId", v ?? "");
+                    set("setorId", "");
+                    set("localizacaoId", "");
+                  }}
+                  items={administracaoItems}
+                />
               </View>
             </>
-          )}
+          ) : null}
 
-          {filtros.administracaoId && (
+          {filtros.administracaoId ? (
             <>
               <Text style={styles.nivelLabel}>Setor</Text>
               <View style={styles.pickerBox}>
-                <Picker
+                <SelectPicker
                   selectedValue={filtros.setorId}
-                  onValueChange={(v) => { set("setorId", v); set("localizacaoId", ""); }}
-                  mode="dropdown"
-                  style={{ color: "#333" }}
-                >
-                  <Picker.Item label="Todos os Setores" value="" />
-                  {setores.map((s) => <Picker.Item key={s.id} label={s.nome} value={s.id} />)}
-                </Picker>
+                  onValueChange={(v: string | null) => {
+                    set("setorId", v ?? "");
+                    set("localizacaoId", "");
+                  }}
+                  items={setorItems}
+                />
               </View>
             </>
-          )}
+          ) : null}
 
-          {filtros.setorId && (
+          {filtros.setorId ? (
             <>
               <Text style={styles.nivelLabel}>Congregação</Text>
               <View style={[styles.pickerBox, styles.pickerBoxDestaque]}>
-                <Picker
+                <SelectPicker
                   selectedValue={filtros.localizacaoId}
-                  onValueChange={(v) => set("localizacaoId", v)}
-                  mode="dropdown"
-                  style={{ color: "#333" }}
-                >
-                  <Picker.Item label="Todas as Congregações do Setor" value="" />
-                  {congregacoes.map((c) => <Picker.Item key={c.id} label={c.nome} value={c.id} />)}
-                </Picker>
+                  onValueChange={(v: string | null) => set("localizacaoId", v ?? "")}
+                  items={congregacaoItems}
+                />
               </View>
             </>
-          )}
+          ) : null}
 
           {/* CARGO */}
           <Text style={styles.secaoTitulo}>Cargo que pode visualizar</Text>
           <View style={styles.pickerBox}>
-            <Picker selectedValue={filtros.cargoId} onValueChange={(v) => set("cargoId", v)} mode="dropdown">
-              <Picker.Item label="Todos os cargos" value="" />
-              {cargos.map((c) => <Picker.Item key={c.id} label={c.nome} value={c.id} />)}
-            </Picker>
+            <SelectPicker
+              selectedValue={filtros.cargoId}
+              onValueChange={(v: string | null) => set("cargoId", v ?? "")}
+              items={cargoItems}
+            />
           </View>
 
         </ScrollView>
@@ -358,7 +388,6 @@ const BuscaScreen: React.FC = () => {
     return [];
   };
 
-  // Resumo legível dos filtros aplicados
   const montarResumo = (filtros: Filtros): string => {
     const partes: string[] = [];
     if (filtros.categoriaModelo) partes.push(filtros.categoriaModelo === "evento" ? "Eventos" : "Reuniões");
@@ -375,11 +404,9 @@ const BuscaScreen: React.FC = () => {
   const handleBuscar = async (filtros: Filtros) => {
     setIsBuscando(true);
     setIsModalVisible(false);
-
     try {
       const periodo = filtros.periodoValue ? calcularPeriodo(filtros.periodoValue) : undefined;
       const locIds = getLocalizacaoIds(filtros, localizacoes);
-
       const eventos = await eventoUseCases.buscarEventos.execute({
         dataInicio: periodo?.inicio,
         dataFim: periodo?.fim,
@@ -388,7 +415,6 @@ const BuscaScreen: React.FC = () => {
         categoriaModelo: filtros.categoriaModelo || undefined,
         cargosVisiveis: filtros.cargoId ? [filtros.cargoId] : undefined,
       });
-
       setResultados(eventos);
       setFiltrosAplicados(montarResumo(filtros));
     } catch (err) {
@@ -411,7 +437,6 @@ const BuscaScreen: React.FC = () => {
   return (
     <SafeScreen style={styles.container}>
 
-      {/* ESTADO INICIAL — antes de qualquer busca */}
       {!buscaFeita && !isBuscando && (
         <View style={styles.inicialContainer}>
           <Text style={styles.inicialIcone}>🔍</Text>
@@ -419,16 +444,12 @@ const BuscaScreen: React.FC = () => {
           <Text style={styles.inicialSubtitulo}>
             Use os filtros para encontrar eventos por período, localização, nome ou cargo.
           </Text>
-          <TouchableOpacity
-            style={styles.abrirFiltrosButton}
-            onPress={() => setIsModalVisible(true)}
-          >
+          <TouchableOpacity style={styles.abrirFiltrosButton} onPress={() => setIsModalVisible(true)}>
             <Text style={styles.abrirFiltrosButtonText}>Definir filtros e buscar</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* BUSCANDO */}
       {isBuscando && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#17A2B8" />
@@ -436,27 +457,18 @@ const BuscaScreen: React.FC = () => {
         </View>
       )}
 
-      {/* RESULTADOS */}
       {buscaFeita && !isBuscando && (
         <>
-          {/* Barra de resultados */}
           <View style={styles.resultadosHeader}>
             <View style={styles.resultadosHeaderInfo}>
               <Text style={styles.resultadosCount}>
-                {resultados.length === 0
-                  ? "Nenhum resultado"
-                  : `${resultados.length} resultado${resultados.length > 1 ? "s" : ""}`}
+                {resultados.length === 0 ? "Nenhum resultado" : `${resultados.length} resultado${resultados.length > 1 ? "s" : ""}`}
               </Text>
               {filtrosAplicados ? (
-                <Text style={styles.filtrosAplicadosText} numberOfLines={1}>
-                  {filtrosAplicados}
-                </Text>
+                <Text style={styles.filtrosAplicadosText} numberOfLines={1}>{filtrosAplicados}</Text>
               ) : null}
             </View>
-            <TouchableOpacity
-              style={styles.alterarFiltrosButton}
-              onPress={() => setIsModalVisible(true)}
-            >
+            <TouchableOpacity style={styles.alterarFiltrosButton} onPress={() => setIsModalVisible(true)}>
               <Text style={styles.alterarFiltrosButtonText}>⚙️ Filtros</Text>
             </TouchableOpacity>
           </View>
@@ -467,10 +479,7 @@ const BuscaScreen: React.FC = () => {
             renderItem={({ item }) => (
               <ResultadoCard
                 evento={item}
-                onPress={(e) => {
-                  setEventoSelecionado(e);
-                  setIsDetalhesVisible(true);
-                }}
+                onPress={(e) => { setEventoSelecionado(e); setIsDetalhesVisible(true); }}
               />
             )}
             contentContainerStyle={{ paddingBottom: 20, paddingTop: 8 }}
@@ -485,7 +494,6 @@ const BuscaScreen: React.FC = () => {
         </>
       )}
 
-      {/* MODAL DE FILTROS */}
       <ModalFiltros
         isVisible={isModalVisible}
         onClose={() => setIsModalVisible(false)}
@@ -515,62 +523,19 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F8F9FA" },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", gap: 12 },
   loadingText: { fontSize: 15, color: "#6C757D" },
-
-  // Estado inicial
-  inicialContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 40,
-    gap: 12,
-  },
+  inicialContainer: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 40, gap: 12 },
   inicialIcone: { fontSize: 48 },
   inicialTitulo: { fontSize: 20, fontWeight: "700", color: "#0A3D62", textAlign: "center" },
   inicialSubtitulo: { fontSize: 14, color: "#6C757D", textAlign: "center", lineHeight: 20 },
-  abrirFiltrosButton: {
-    marginTop: 8,
-    backgroundColor: "#0A3D62",
-    borderRadius: 10,
-    paddingHorizontal: 28,
-    paddingVertical: 14,
-  },
+  abrirFiltrosButton: { marginTop: 8, backgroundColor: "#0A3D62", borderRadius: 10, paddingHorizontal: 28, paddingVertical: 14 },
   abrirFiltrosButtonText: { color: "#fff", fontSize: 15, fontWeight: "700" },
-
-  // Barra de resultados
-  resultadosHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#DEE2E6",
-  },
+  resultadosHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10, backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#DEE2E6" },
   resultadosHeaderInfo: { flex: 1, marginRight: 10 },
   resultadosCount: { fontSize: 14, fontWeight: "700", color: "#0A3D62" },
   filtrosAplicadosText: { fontSize: 12, color: "#888", marginTop: 2 },
-  alterarFiltrosButton: {
-    borderWidth: 1.5,
-    borderColor: "#17A2B8",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
+  alterarFiltrosButton: { borderWidth: 1.5, borderColor: "#17A2B8", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
   alterarFiltrosButtonText: { fontSize: 13, color: "#17A2B8", fontWeight: "600" },
-
-  // Cards
-  card: {
-    flexDirection: "row",
-    backgroundColor: "#fff",
-    marginHorizontal: 16,
-    marginBottom: 10,
-    borderRadius: 10,
-    padding: 12,
-    elevation: 1,
-    alignItems: "center",
-    gap: 12,
-  },
+  card: { flexDirection: "row", backgroundColor: "#fff", marginHorizontal: 16, marginBottom: 10, borderRadius: 10, padding: 12, elevation: 1, alignItems: "center", gap: 12 },
   cardData: { alignItems: "center", minWidth: 40 },
   cardDia: { fontSize: 22, fontWeight: "800", color: "#0A3D62", lineHeight: 26 },
   cardMes: { fontSize: 12, fontWeight: "600", color: "#17A2B8", textTransform: "uppercase" },
@@ -581,77 +546,25 @@ const styles = StyleSheet.create({
   cardModelo: { fontSize: 12, color: "#17A2B8", fontWeight: "600" },
   cardHora: { fontSize: 12, color: "#555" },
   cardLocal: { fontSize: 12, color: "#666" },
-  recorrenteBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: "#EEF9FB",
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginTop: 2,
-  },
+  recorrenteBadge: { alignSelf: "flex-start", backgroundColor: "#EEF9FB", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2, marginTop: 2 },
   recorrenteBadgeText: { fontSize: 11, color: "#17A2B8", fontWeight: "600" },
-
-  // Vazio
   vazioContainer: { padding: 40, alignItems: "center", gap: 8 },
   vazioIcone: { fontSize: 40 },
   vazioText: { fontSize: 15, color: "#6C757D", textAlign: "center", fontWeight: "600" },
   vazioHint: { fontSize: 13, color: "#AAA", textAlign: "center" },
-
-  // Modal de filtros
   modalContainer: { flex: 1, backgroundColor: "#F8F9FA" },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#0A3D62",
-    paddingTop: 50,
-    paddingBottom: 15,
-    paddingHorizontal: 16,
-  },
+  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "#0A3D62", paddingTop: 50, paddingBottom: 15, paddingHorizontal: 16 },
   modalTitulo: { fontSize: 17, fontWeight: "700", color: "#fff" },
   modalCancelar: { fontSize: 15, color: "#BEE5EB" },
   modalLimpar: { fontSize: 15, color: "#FF6B6B", fontWeight: "600" },
   modalScroll: { flex: 1 },
   modalContent: { padding: 16, paddingBottom: 8 },
-  modalFooter: {
-    padding: 16,
-    paddingBottom: 32,
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderTopColor: "#DEE2E6",
-  },
-  secaoTitulo: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#0A3D62",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginTop: 16,
-    marginBottom: 6,
-  },
-  nivelLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#888",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  pickerBox: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#DEE2E6",
-    borderRadius: 8,
-    overflow: "hidden",
-  },
+  modalFooter: { padding: 16, paddingBottom: 32, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: "#DEE2E6" },
+  secaoTitulo: { fontSize: 13, fontWeight: "700", color: "#0A3D62", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 16, marginBottom: 6 },
+  nivelLabel: { fontSize: 12, fontWeight: "600", color: "#888", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 8, marginBottom: 4 },
+  pickerBox: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#DEE2E6", borderRadius: 8, overflow: "hidden" },
   pickerBoxDestaque: { borderColor: "#0A3D62", borderWidth: 2 },
-  buscarButton: {
-    backgroundColor: "#0A3D62",
-    borderRadius: 10,
-    padding: 14,
-    alignItems: "center",
-  },
+  buscarButton: { backgroundColor: "#0A3D62", borderRadius: 10, padding: 14, alignItems: "center" },
   buscarButtonDisabled: { backgroundColor: "#A0B4C8" },
   buscarButtonText: { color: "#fff", fontSize: 15, fontWeight: "700" },
 });

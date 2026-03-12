@@ -1,6 +1,6 @@
 // src/presentation/screens/LoginScreen.tsx
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -29,13 +29,15 @@ const LoginScreen: React.FC = () => {
   const loginUserUseCase = useLoginUseCase();
   const notificationService = useNotificationService();
   const { state, setField, handleLogin } = useLoginViewModel(loginUserUseCase, notificationService);
+  const [isRecuperando, setIsRecuperando] = useState(false);
 
   const handleEsqueceuSenha = async () => {
-    console.log("redirectTo:", RESET_PASSWORD_REDIRECT);
+    if (isRecuperando) return;
     if (!state.email.trim()) {
       Alert.alert("Atenção", "Digite seu e-mail no campo acima antes de continuar.");
       return;
     }
+    setIsRecuperando(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(
         state.email.trim(),
@@ -48,8 +50,12 @@ const LoginScreen: React.FC = () => {
       );
     } catch (e: any) {
       Alert.alert("Erro", e?.message ?? "Falha ao enviar e-mail de recuperação.");
+    } finally {
+      setIsRecuperando(false);
     }
   };
+
+  const isAnyLoading = state.isLoading || isRecuperando;
 
   return (
     <View style={styles.safeArea}>
@@ -75,7 +81,7 @@ const LoginScreen: React.FC = () => {
             autoCapitalize="none"
             value={state.email}
             onChangeText={(text) => setField('email', text)}
-            editable={!state.isLoading}
+            editable={!isAnyLoading}
           />
 
           <TextInput
@@ -85,7 +91,7 @@ const LoginScreen: React.FC = () => {
             secureTextEntry
             value={state.password}
             onChangeText={(text) => setField('password', text)}
-            editable={!state.isLoading}
+            editable={!isAnyLoading}
           />
 
           {state.error && (
@@ -93,9 +99,9 @@ const LoginScreen: React.FC = () => {
           )}
 
           <TouchableOpacity
-            style={[styles.button, state.isLoading && styles.buttonDisabled]}
+            style={[styles.button, isAnyLoading && styles.buttonDisabled]}
             onPress={handleLogin}
-            disabled={state.isLoading}
+            disabled={isAnyLoading}
           >
             {state.isLoading ? (
               <ActivityIndicator color={COLORS.white} />
@@ -104,9 +110,19 @@ const LoginScreen: React.FC = () => {
             )}
           </TouchableOpacity>
 
-          {/* Botão de recuperação */}
-          <TouchableOpacity style={styles.forgotButton} onPress={handleEsqueceuSenha}>
-            <Text style={styles.forgotText}>Esqueceu a senha?</Text>
+          <TouchableOpacity
+            style={[styles.forgotButton, isRecuperando && styles.forgotButtonDisabled]}
+            onPress={handleEsqueceuSenha}
+            disabled={isRecuperando}
+          >
+            {isRecuperando ? (
+              <View style={styles.forgotLoadingRow}>
+                <ActivityIndicator size="small" color={COLORS.primaryBlue} />
+                <Text style={styles.forgotTextLoading}>Enviando e-mail...</Text>
+              </View>
+            ) : (
+              <Text style={styles.forgotText}>Esqueceu a senha?</Text>
+            )}
           </TouchableOpacity>
 
         </View>
@@ -147,7 +163,10 @@ const styles = StyleSheet.create({
   buttonText: { color: COLORS.white, fontSize: 18, fontWeight: 'bold' },
   errorText: { width: '100%', color: COLORS.errorRed, textAlign: 'center', marginBottom: 10, fontSize: 14 },
   forgotButton: { marginTop: 20, padding: 8 },
+  forgotButtonDisabled: { opacity: 0.7 },
   forgotText: { color: COLORS.primaryBlue, fontSize: 14, textDecorationLine: 'underline' },
+  forgotLoadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  forgotTextLoading: { color: COLORS.primaryBlue, fontSize: 14 },
 });
 
 export default LoginScreen;

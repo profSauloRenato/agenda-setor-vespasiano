@@ -1,6 +1,7 @@
 // src/presentation/context/AuthContext.tsx
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Linking } from 'react-native';
 import { supabase } from '../../config/supabaseClient';
 import { serviceLocator } from '../../config/serviceLocator';
 import { IUsuario } from '../../domain/models/IUsuario';
@@ -70,10 +71,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
+    const processAuthUrl = async (url: string) => {
+      try {
+        // Extrai parâmetros da query string
+        const params = new URLSearchParams(url.split("?")[1] || url.split("#")[1] || "");
+        const accessToken = params.get("access_token");
+        const refreshToken = params.get("refresh_token");
+        const type = params.get("type");
+
+        if (accessToken && refreshToken && type === "recovery") {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (error) {
+            console.error("Erro setSession:", error.message);
+          } else {
+            setIsPasswordRecovery(true);
+          }
+        }
+      } catch (e) {
+        console.error("Erro ao processar URL:", e);
+      }
+    };
+
+    Linking.getInitialURL().then((url) => {
+      if (url) processAuthUrl(url);
+    });
+
+    const linkingSub = Linking.addEventListener("url", ({ url }: { url: string }) => {
+      processAuthUrl(url);
+    });
+
     checkSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      console.log("🔐 Auth event:", event);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
         setUser(null);
       }
@@ -82,7 +114,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      linkingSub.remove();
+    };
   }, []);
 
   return (

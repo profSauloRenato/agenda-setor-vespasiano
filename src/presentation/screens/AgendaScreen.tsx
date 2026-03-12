@@ -22,6 +22,7 @@ import { CompromissoFormModal } from "./agenda/components/CompromissoFormModal";
 import CompromissoDetailsModal from "./agenda/components/CompromissoDetailsModal";
 import SafeScreen from "../components/SafeScreen";
 import { expandirRecorrencias, formatarDataISO } from "../utils/compromissoUtils";
+import { useAuth } from "../context/AuthContext";
 
 // -------------------------------------------
 // LOCALE
@@ -143,6 +144,7 @@ const CompromissoCard: React.FC<{
 // TELA PRINCIPAL
 // -------------------------------------------
 const AgendaScreen: React.FC<{ route?: any }> = ({ route }) => {
+  const { user } = useAuth();
   const eventoUseCases = useEventoUseCases();
   const compromissoUseCases = useCompromissoUseCases();
   const navigation = useNavigation<any>();
@@ -170,12 +172,12 @@ const AgendaScreen: React.FC<{ route?: any }> = ({ route }) => {
   const [isCompromissoFormVisible, setIsCompromissoFormVisible] = useState(false);
   const [compromissoToEdit, setCompromissoToEdit] = useState<ICompromissoPessoal | null>(null);
 
-  // Carrega ao focar a tela
+  // Carrega ao focar a tela — estabilizado com user?.id para evitar loops
   useFocusEffect(
     useCallback(() => {
       loadEventos();
       refreshCompromissos();
-    }, [])
+    }, [user?.id])
   );
 
   // Abre evento automaticamente se vier da notificação push
@@ -483,17 +485,6 @@ const styles = StyleSheet.create({
     textTransform: "capitalize",
     marginRight: 10,
   },
-  addButton: {
-    backgroundColor: "#4A4A6A",
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 20,
-  },
-  addButtonText: {
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: "700",
-  },
   card: {
     flexDirection: "row",
     backgroundColor: "#fff",
@@ -562,11 +553,6 @@ const styles = StyleSheet.create({
     color: "#AAA",
     marginTop: 8,
     textAlign: "center",
-  },
-  barraAcoes: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
   },
   buscaButton: {
     backgroundColor: "#17A2B8",

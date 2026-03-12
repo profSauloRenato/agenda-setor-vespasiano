@@ -154,16 +154,26 @@ const TextoCard: React.FC<{
   const [medido, setMedido] = useState(false);
 
   return (
-    <View>
+    <View style={{ minHeight: 66 }}>
+      {/* Text invisível para medir o total de linhas sem truncamento */}
+      <View style={{ height: 0, overflow: "hidden" }}>
+        <Text
+          style={stylesCarrossel.texto}
+          numberOfLines={undefined}
+          onTextLayout={(e) => {
+            if (!medido) {
+              setMedido(true);
+              setTruncado(e.nativeEvent.lines.length > limiteLinhas);
+            }
+          }}
+        >
+          {texto}
+        </Text>
+      </View>
+      {/* Text visível com truncamento condicional */}
       <Text
         style={stylesCarrossel.texto}
         numberOfLines={!expandido ? limiteLinhas : undefined}
-        onTextLayout={(e) => {
-          if (!medido) {
-            setMedido(true);
-            setTruncado(e.nativeEvent.lines.length >= limiteLinhas);
-          }
-        }}
       >
         {texto}
       </Text>
@@ -173,7 +183,6 @@ const TextoCard: React.FC<{
             onPress={onExpandir}>Ler mais ▼</Text>
         </View>
       )}
-      {!truncado && <View style={{ height: 44 }} />}
       {expandido && (
         <View style={stylesCarrossel.lerMaisRow}>
           <Text style={[stylesCarrossel.lerMaisInline, { color: labelColor }]}
