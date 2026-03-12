@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     label: { fontSize: 13, fontWeight: "600", color: "#0A3D62", marginBottom: 5, marginTop: 12 },
     input: { backgroundColor: "#F9F9F9", borderWidth: 1, borderColor: "#CCC", borderRadius: 8, padding: 10, fontSize: 14, color: "#333" },
     inputMultiline: { minHeight: 80, textAlignVertical: "top" },
-    buttonContainer: { flexDirection: "row", gap: 10, marginTop: 16 },
+    buttonContainer: { flexDirection: "row", gap: 10, marginTop: 16, marginBottom: 14 },
     button: { flex: 1, borderRadius: 8, padding: 13, alignItems: "center" },
     buttonCancel: { backgroundColor: "#6C757D" },
     buttonCreate: { backgroundColor: "#3CB371" },

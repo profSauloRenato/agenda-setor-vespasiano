@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   categoriaChip: { flex: 1, paddingVertical: 10, borderRadius: 8, borderWidth: 1.5, borderColor: "#DEE2E6", backgroundColor: "#fff", alignItems: "center" },
   categoriaChipText: { fontSize: 14, fontWeight: "600", color: "#555" },
   categoriaHint: { fontSize: 12, color: "#888", lineHeight: 18 },
-  buttonContainer: { flexDirection: "row", gap: 10, marginTop: 16 },
+  buttonContainer: { flexDirection: "row", gap: 10, marginTop: 16, marginBottom: 14 },
   button: { flex: 1, borderRadius: 8, padding: 13, alignItems: "center" },
   buttonCancel: { backgroundColor: "#6C757D" },
   buttonSave: { backgroundColor: "#3CB371" },

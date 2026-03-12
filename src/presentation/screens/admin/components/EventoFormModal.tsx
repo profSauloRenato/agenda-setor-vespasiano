@@ -860,7 +860,7 @@ const styles = StyleSheet.create({
   cargoChipTextSelected: { color: "#fff" },
   switchRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 15, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: "#DCE0E6" },
   recorrenciaBox: { backgroundColor: "#E8F4F8", borderRadius: 8, padding: 15, marginTop: 10 },
-  footer: { flexDirection: "row", padding: 15, borderTopWidth: 1, borderTopColor: "#DCE0E6", backgroundColor: "#fff", gap: 10 },
+  footer: { flexDirection: "row", padding: 15, borderTopWidth: 1, borderTopColor: "#DCE0E6", marginBottom: 14, backgroundColor: "#fff", gap: 10 },
   saveButton: { flex: 1, backgroundColor: "#3CB371", borderRadius: 8, padding: 15, alignItems: "center" },
   saveButtonDisabled: { backgroundColor: "#A5D6A7" },
   saveButtonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },

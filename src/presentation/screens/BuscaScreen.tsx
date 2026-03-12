@@ -527,7 +527,7 @@ const styles = StyleSheet.create({
   inicialIcone: { fontSize: 48 },
   inicialTitulo: { fontSize: 20, fontWeight: "700", color: "#0A3D62", textAlign: "center" },
   inicialSubtitulo: { fontSize: 14, color: "#6C757D", textAlign: "center", lineHeight: 20 },
-  abrirFiltrosButton: { marginTop: 8, backgroundColor: "#0A3D62", borderRadius: 10, paddingHorizontal: 28, paddingVertical: 14 },
+  abrirFiltrosButton: { marginTop: 8, backgroundColor: "#17A2B8", borderRadius: 10, paddingHorizontal: 28, paddingVertical: 14 },
   abrirFiltrosButtonText: { color: "#fff", fontSize: 15, fontWeight: "700" },
   resultadosHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10, backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#DEE2E6" },
   resultadosHeaderInfo: { flex: 1, marginRight: 10 },

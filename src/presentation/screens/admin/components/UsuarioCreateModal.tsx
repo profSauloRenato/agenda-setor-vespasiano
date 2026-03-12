@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   cargoItemSelected: { backgroundColor: "#0A3D62", borderColor: "#0A3D62" },
   cargoText: { marginLeft: 6, fontSize: 13, color: "#0A3D62" },
   cargoTextSelected: { color: "#fff" },
-  buttonContainer: { flexDirection: "row", gap: 10, marginTop: 14 },
+  buttonContainer: { flexDirection: "row", gap: 10, marginTop: 14, marginBottom: 14 },
   button: { flex: 1, borderRadius: 8, padding: 13, alignItems: "center" },
   buttonCancel: { backgroundColor: "#6C757D" },
   buttonSave: { backgroundColor: "#28A745" },

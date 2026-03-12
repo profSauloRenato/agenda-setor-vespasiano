@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   dateButton: { borderWidth: 1, borderColor: "#CED4DA", borderRadius: 8, padding: 12, backgroundColor: "#fff" },
   dateButtonText: { fontSize: 14, color: "#333" },
   switchRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10 },
-  modalButtons: { flexDirection: "row", gap: 10, marginTop: 20 },
+  modalButtons: { flexDirection: "row", gap: 10, marginTop: 14, marginBottom: 14 },
   modalBtn: { flex: 1, padding: 12, borderRadius: 8, alignItems: "center" },
   modalBtnText: { color: "#fff", fontWeight: "bold", fontSize: 15 },
   pickerContainer: { borderWidth: 1, borderColor: "#CED4DA", borderRadius: 8, marginBottom: 5, backgroundColor: "#fff", overflow: "hidden" },

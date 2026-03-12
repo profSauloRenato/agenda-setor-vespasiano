@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   cargoTextSelected: { color: "#fff" },
   resetButton: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 20, padding: 14, borderRadius: 8, borderWidth: 1, borderColor: "#DC3545", backgroundColor: "#FFF5F5", justifyContent: "center" },
   resetButtonText: { fontSize: 14, color: "#DC3545", fontWeight: "600" },
-  footer: { flexDirection: "row", gap: 10, paddingTop: 12, paddingHorizontal: 0 },
+  footer: { flexDirection: "row", gap: 10, paddingTop: 12, marginBottom: 14, paddingHorizontal: 0 },
   cancelButton: { flex: 1, backgroundColor: "#6C757D", borderRadius: 8, padding: 14, alignItems: "center" },
   cancelButtonText: { color: "#fff", fontSize: 15, fontWeight: "700" },
   saveButton: { flex: 1, backgroundColor: "#3CB371", borderRadius: 8, padding: 14, alignItems: "center" },

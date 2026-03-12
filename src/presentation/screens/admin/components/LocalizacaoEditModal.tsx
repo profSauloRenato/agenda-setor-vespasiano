@@ -159,14 +159,26 @@ const LocalizacaoEditModal: React.FC<LocalizacaoEditModalProps> = ({
                 <Text style={styles.sectionTitle}>Endereço (opcional)</Text>
                 <Text style={styles.label}>Rua:</Text>
                 <TextInput style={styles.input} placeholder="Ex: Rua das Flores" value={enderecoRua} onChangeText={setEnderecoRua} editable={!isSaving} />
-                <Text style={styles.label}>Número:</Text>
-                <TextInput style={styles.input} placeholder="Ex: 123" value={enderecoNumero} onChangeText={setEnderecoNumero} keyboardType="numeric" editable={!isSaving} />
-                <Text style={styles.label}>Bairro:</Text>
-                <TextInput style={styles.input} placeholder="Ex: Centro" value={enderecoBairro} onChangeText={setEnderecoBairro} editable={!isSaving} />
-                <Text style={styles.label}>Cidade:</Text>
-                <TextInput style={styles.input} placeholder="Ex: Vespasiano" value={enderecoCidade} onChangeText={setEnderecoCidade} editable={!isSaving} />
-                <Text style={styles.label}>Estado (UF):</Text>
-                <TextInput style={styles.input} placeholder="Ex: MG" value={enderecoEstado} onChangeText={setEnderecoEstado} maxLength={2} autoCapitalize="characters" editable={!isSaving} />
+                <View style={styles.row}>
+                  <View style={styles.colSmall}>
+                    <Text style={styles.label}>Número:</Text>
+                    <TextInput style={styles.input} placeholder="Ex: 123" value={enderecoNumero} onChangeText={setEnderecoNumero} keyboardType="numeric" editable={!isSaving} />
+                  </View>
+                  <View style={styles.colLarge}>
+                    <Text style={styles.label}>Bairro:</Text>
+                    <TextInput style={styles.input} placeholder="Ex: Centro" value={enderecoBairro} onChangeText={setEnderecoBairro} editable={!isSaving} />
+                  </View>
+                </View>
+                <View style={styles.row}>
+                  <View style={styles.colLarge}>
+                    <Text style={styles.label}>Cidade:</Text>
+                    <TextInput style={styles.input} placeholder="Ex: Vespasiano" value={enderecoCidade} onChangeText={setEnderecoCidade} editable={!isSaving} />
+                  </View>
+                  <View style={styles.colSmall}>
+                    <Text style={styles.label}>UF:</Text>
+                    <TextInput style={styles.input} placeholder="MG" value={enderecoEstado} onChangeText={setEnderecoEstado} maxLength={2} autoCapitalize="characters" editable={!isSaving} />
+                  </View>
+                </View>
                 <Text style={styles.label}>CEP:</Text>
                 <TextInput style={styles.input} placeholder="Ex: 33200-000" value={enderecoCep} onChangeText={setEnderecoCep} keyboardType="numeric" editable={!isSaving} />
               </View>
@@ -200,7 +212,10 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderColor: "#CCC", padding: 9, borderRadius: 6, backgroundColor: "#F9F9F9", fontSize: 14, color: "#333" },
   pickerContainer: { borderWidth: 1, borderColor: "#CCC", borderRadius: 6, backgroundColor: "#F9F9F9", overflow: "hidden" },
   infoText: { fontSize: 12, color: "#6C757D", marginTop: 15, marginBottom: 5, textAlign: "right" },
-  buttonContainer: { flexDirection: "row", justifyContent: "space-between", marginTop: 14, gap: 10 },
+  buttonContainer: { flexDirection: "row", justifyContent: "space-between", marginTop: 14, marginBottom: 14, gap: 10 },
+  row: { flexDirection: "row", gap: 10 },
+  colSmall: { flex: 1 },
+  colLarge: { flex: 2 },
   button: { borderRadius: 8, padding: 13, flex: 1, alignItems: "center" },
   buttonSave: { backgroundColor: "#3CB371" },
   buttonCancel: { backgroundColor: "#6C757D" },
