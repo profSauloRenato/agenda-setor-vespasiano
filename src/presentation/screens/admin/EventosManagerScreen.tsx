@@ -16,9 +16,10 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { IEvento } from "../../../domain/models/IEvento";
 import { ICargo } from "../../../domain/models/ICargo";
 import { ILocalizacao } from "../../../domain/models/ILocalizacao";
+import { IEventoModelo } from "../../../domain/models/IEventoModelo";
 import { EventoUseCases, useEventosViewModel } from "../../view_models/EventosViewModel";
 import { useAuth } from "../../context/AuthContext";
-import { useCargoUseCases, useLocalizacaoUseCases } from "../../../config/serviceLocator";
+import { useCargoUseCases, useLocalizacaoUseCases, useEventoModeloUseCases } from "../../../config/serviceLocator";
 import { EventoFormModal } from "./components/EventoFormModal";
 import EventoDetailsModal from "./components/EventoDetailsModal";
 import SafeScreen from "../../components/SafeScreen";
@@ -89,11 +90,13 @@ export const EventosManagerScreen: React.FC<EventosManagerScreenProps> = ({
   const { state, deleteEvento, refreshEventos } = useEventosViewModel(eventoUseCases);
   const cargoUseCases = useCargoUseCases();
   const localizacaoUseCases = useLocalizacaoUseCases();
+  const eventoModeloUseCases = useEventoModeloUseCases();
 
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [eventoToEdit, setEventoToEdit] = useState<IEvento | null>(null);
   const [cargosDisponiveis, setCargosDisponiveis] = useState<ICargo[]>([]);
   const [localizacoesDisponiveis, setLocalizacoesDisponiveis] = useState<ILocalizacao[]>([]);
+  const [modelosDisponiveis, setModelosDisponiveis] = useState<IEventoModelo[]>([]);
   const [isLoadingRefs, setIsLoadingRefs] = useState(true);
   const [isDetailsModalVisible, setIsDetailsModalVisible] = useState(false);
   const [eventoToDetail, setEventoToDetail] = useState<IEvento | null>(null);
@@ -104,7 +107,12 @@ export const EventosManagerScreen: React.FC<EventosManagerScreenProps> = ({
   const [filtroAdminId, setFiltroAdminId] = useState<string>("todos");
   const [filtroSetorId, setFiltroSetorId] = useState<string>("todos");
   const [filtroCargoId, setFiltroCargoId] = useState<string>("todos");
-  const [filtroDataInicio, setFiltroDataInicio] = useState<Date | null>(null);
+  const [filtroModeloId, setFiltroModeloId] = useState<string>("todos");
+  const [filtroDataInicio, setFiltroDataInicio] = useState<Date | null>(() => {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    return hoje;
+  });
   const [filtroDataFim, setFiltroDataFim] = useState<Date | null>(null);
   const [showPickerDataInicio, setShowPickerDataInicio] = useState(false);
   const [showPickerDataFim, setShowPickerDataFim] = useState(false);
@@ -141,22 +149,32 @@ export const EventosManagerScreen: React.FC<EventosManagerScreenProps> = ({
   };
 
   const filtrosAtivos = useMemo(() => {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const dataInicioEhDefault =
+      filtroDataInicio !== null &&
+      filtroDataInicio.toDateString() === hoje.toDateString();
+
     let count = 0;
     if (filtroRegionalId !== "todos") count++;
     if (filtroAdminId !== "todos") count++;
     if (filtroSetorId !== "todos") count++;
     if (filtroCargoId !== "todos") count++;
-    if (filtroDataInicio) count++;
+    if (filtroModeloId !== "todos") count++;
+    if (filtroDataInicio && !dataInicioEhDefault) count++;
     if (filtroDataFim) count++;
     return count;
-  }, [filtroRegionalId, filtroAdminId, filtroSetorId, filtroCargoId, filtroDataInicio, filtroDataFim]);
+  }, [filtroRegionalId, filtroAdminId, filtroSetorId, filtroCargoId, filtroModeloId, filtroDataInicio, filtroDataFim]);
 
   const limparFiltros = () => {
     setFiltroRegionalId("todos");
     setFiltroAdminId("todos");
     setFiltroSetorId("todos");
     setFiltroCargoId("todos");
-    setFiltroDataInicio(null);
+    setFiltroModeloId("todos");
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    setFiltroDataInicio(hoje);
     setFiltroDataFim(null);
   };
 
@@ -202,6 +220,11 @@ export const EventosManagerScreen: React.FC<EventosManagerScreenProps> = ({
       lista = lista.filter(e => e.cargos_visiveis.includes(filtroCargoId));
     }
 
+    // Filtro de modelo
+    if (filtroModeloId !== "todos") {
+      lista = lista.filter(e => e.modelo_id === filtroModeloId);
+    }
+
     // Filtro de período
     if (filtroDataInicio) {
       const ini = new Date(filtroDataInicio);
@@ -215,19 +238,21 @@ export const EventosManagerScreen: React.FC<EventosManagerScreenProps> = ({
     }
 
     return lista;
-  }, [state.eventos, filtroRegionalId, filtroAdminId, filtroSetorId, filtroCargoId, filtroDataInicio, filtroDataFim, localizacoesDisponiveis, administracoes, setores]);
+  }, [state.eventos, filtroRegionalId, filtroAdminId, filtroSetorId, filtroCargoId, filtroModeloId, filtroDataInicio, filtroDataFim, localizacoesDisponiveis, administracoes, setores]);
 
   // ── Carregar dados de referência ─────────────────────────────────────────
   useEffect(() => {
     const loadReferenceData = async () => {
       if (!user) return;
       try {
-        const [cargos, localizacoes] = await Promise.all([
+        const [cargos, localizacoes, modelos] = await Promise.all([
           cargoUseCases.getCargos.execute(user),
           localizacaoUseCases.getLocalizacoes.execute(user),
+          eventoModeloUseCases.getAll.execute(true),
         ]);
         setCargosDisponiveis(cargos);
         setLocalizacoesDisponiveis(localizacoes);
+        setModelosDisponiveis(modelos);
       } catch (e) {
         Alert.alert("Erro", "Falha ao carregar dados de referência.");
       } finally {
@@ -249,8 +274,15 @@ export const EventosManagerScreen: React.FC<EventosManagerScreenProps> = ({
     setIsFormVisible(true);
   };
 
-  const handleDelete = async (eventoId: string) => {
-    await deleteEvento(eventoId);
+  const handleDelete = (eventoId: string, tituloEvento?: string) => {
+    Alert.alert(
+      "Confirmar Exclusão",
+      `Excluir o evento "${tituloEvento ?? "este evento"}"?\n\n⚠️ Esta ação não pode ser desfeita.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Excluir", style: "destructive", onPress: () => deleteEvento(eventoId) },
+      ]
+    );
   };
 
   const handleOpenCreate = () => {
@@ -317,13 +349,27 @@ export const EventosManagerScreen: React.FC<EventosManagerScreenProps> = ({
         {filtrosExpandido && (
           <View style={styles.filtrosConteudo}>
 
+            {/* Modelo */}
+            <View style={styles.pickerRow}>
+              <Text style={styles.pickerLabel}>Nome</Text>
+              <View style={styles.pickerWrap}>
+                <SelectPicker
+                  selectedValue={filtroModeloId}
+                  onValueChange={(v) => setFiltroModeloId(v ?? "todos")}
+                  items={[{ label: "Todos", value: "todos" }, ...modelosDisponiveis.map(m => ({ label: m.nome, value: m.id }))]}
+                  enabled={modelosDisponiveis.length > 0}
+                  dropdownIconColor="#17A2B8"
+                />
+              </View>
+            </View>
+
             {/* Regional */}
             <View style={styles.pickerRow}>
               <Text style={styles.pickerLabel}>Regional</Text>
               <View style={styles.pickerWrap}>
                 <SelectPicker
                   selectedValue={filtroRegionalId}
-                  onValueChange={(v: string | null) => handleRegionalChange(v ?? "todos")}
+                  onValueChange={(v) => handleRegionalChange(v ?? "todos")}
                   items={[{ label: "Todas", value: "todos" }, ...regionais.map(r => ({ label: r.nome, value: r.id }))]}
                   dropdownIconColor="#17A2B8"
                 />
@@ -336,7 +382,7 @@ export const EventosManagerScreen: React.FC<EventosManagerScreenProps> = ({
               <View style={styles.pickerWrap}>
                 <SelectPicker
                   selectedValue={filtroAdminId}
-                  onValueChange={(v: string | null) => handleAdminChange(v ?? "todos")}
+                  onValueChange={(v) => handleAdminChange(v ?? "todos")}
                   items={[{ label: "Todas", value: "todos" }, ...administracoes.map(a => ({ label: a.nome, value: a.id }))]}
                   enabled={administracoes.length > 0}
                   dropdownIconColor="#17A2B8"
@@ -350,7 +396,7 @@ export const EventosManagerScreen: React.FC<EventosManagerScreenProps> = ({
               <View style={styles.pickerWrap}>
                 <SelectPicker
                   selectedValue={filtroSetorId}
-                  onValueChange={(v: string | null) => setFiltroSetorId(v ?? "todos")}
+                  onValueChange={(v) => setFiltroSetorId(v ?? "todos")}
                   items={[{ label: "Todos", value: "todos" }, ...setores.map(s => ({ label: s.nome, value: s.id }))]}
                   enabled={setores.length > 0}
                   dropdownIconColor="#17A2B8"
@@ -364,7 +410,7 @@ export const EventosManagerScreen: React.FC<EventosManagerScreenProps> = ({
               <View style={styles.pickerWrap}>
                 <SelectPicker
                   selectedValue={filtroCargoId}
-                  onValueChange={(v: string | null) => setFiltroCargoId(v ?? "todos")}
+                  onValueChange={(v) => setFiltroCargoId(v ?? "todos")}
                   items={[{ label: "Todos", value: "todos" }, ...cargosDisponiveis.map(c => ({ label: c.nome, value: c.id }))]}
                   dropdownIconColor="#17A2B8"
                 />

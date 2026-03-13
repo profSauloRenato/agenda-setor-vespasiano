@@ -266,17 +266,22 @@ const AgendaScreen: React.FC<{ route?: any }> = ({ route }) => {
     let ok: ICompromissoPessoal | undefined;
     if ("id" in params) {
       ok = await updateCompromisso(params as UpdateCompromissoParams);
+      if (ok) {
+        setIsCompromissoFormVisible(false);
+        setIsCompromissoDetailsVisible(false);
+        setCompromissoToEdit(null);
+        setCompromissoSelecionado(null);
+      }
     } else {
       ok = await createCompromisso(params as CreateCompromissoParams);
-    }
-    if (ok) {
-      setIsCompromissoFormVisible(false);
-      setCompromissoToEdit(null);
+      if (ok) {
+        setIsCompromissoFormVisible(false);
+        setCompromissoToEdit(null);
+      }
     }
   };
 
   const handleEditCompromisso = (compromisso: ICompromissoPessoal) => {
-    setIsCompromissoDetailsVisible(false);
     setCompromissoToEdit(compromisso);
     setIsCompromissoFormVisible(true);
   };
@@ -570,8 +575,7 @@ const styles = StyleSheet.create({
     right: 20,
     backgroundColor: "#4A4A6A",
     paddingHorizontal: 22,
-    paddingTop: 10,
-    paddingBottom: 14,
+    paddingVertical: 12,
     borderRadius: 20,
     elevation: 5,
     shadowColor: "#000",

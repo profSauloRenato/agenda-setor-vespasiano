@@ -224,7 +224,7 @@ const MainStack = () => {
       <Stack.Screen name="VersiculosManager" component={VersiculosManagerScreen} options={{ ...adminHeaderOptions, title: "Versículos e Mensagens" }} />
       <Stack.Screen name="Perfil" component={PerfilScreen} options={{ ...adminHeaderOptions, title: "Meu Perfil" }} />
       <Stack.Screen name="EventoModelosManager" component={EventoModelosManagerScreen} options={{ ...adminHeaderOptions, title: "Modelos de Eventos" }} />
-      <Stack.Screen name="Busca" component={BuscaScreen} options={{ ...adminHeaderOptions, title: "Buscar Eventos" }} />
+      <Stack.Screen name="Busca" component={BuscaScreen} options={{ ...adminHeaderOptions, title: "Buscar Eventos e Reuniões" }} />
     </Stack.Navigator>
   );
 };

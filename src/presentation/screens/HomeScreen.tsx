@@ -320,6 +320,7 @@ const HomeScreen: React.FC = () => {
   const {
     state: compromissosState,
     refreshCompromissos,
+    createCompromisso,
     updateCompromisso,
     deleteCompromisso,
   } = useCompromissosViewModel(compromissoUseCases);
@@ -394,13 +395,20 @@ const HomeScreen: React.FC = () => {
       const ok = await updateCompromisso(params as UpdateCompromissoParams);
       if (ok) {
         setIsCompromissoFormVisible(false);
+        setIsCompromissoDetailsVisible(false);
+        setCompromissoToEdit(null);
+        setCompromissoSelecionado(null);
+      }
+    } else {
+      const ok = await createCompromisso(params as CreateCompromissoParams);
+      if (ok) {
+        setIsCompromissoFormVisible(false);
         setCompromissoToEdit(null);
       }
     }
   };
 
   const handleEditCompromisso = (compromisso: ICompromissoPessoal) => {
-    setIsCompromissoDetailsVisible(false);
     setCompromissoToEdit(compromisso);
     setIsCompromissoFormVisible(true);
   };

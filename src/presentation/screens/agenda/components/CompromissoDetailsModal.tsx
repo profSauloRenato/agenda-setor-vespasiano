@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ICompromissoPessoal } from '../../../../domain/models/ICompromissoPessoal';
 
 interface Props {
@@ -43,7 +44,7 @@ const recorrenciaLabel = (compromisso: ICompromissoPessoal): string => {
   if (!compromisso.recorrente || !compromisso.recorrencia_tipo) return '';
   const tipo = compromisso.recorrencia_tipo === 'semanal' ? 'Semanal' : 'Mensal';
   const fim = compromisso.recorrencia_fim
-    ? ` · até ${formatDataCurta(compromisso.recorrencia_fim)}`
+    ? ` · Até ${formatDataCurta(compromisso.recorrencia_fim)}`
     : ' · sem data de fim';
   return `${tipo}${fim}`;
 };
@@ -84,6 +85,8 @@ const CompromissoDetailsModal: React.FC<Props> = ({
   onEdit,
   onDelete,
 }) => {
+  const insets = useSafeAreaInsets();
+
   if (!compromisso) return null;
 
   const handleDelete = () => {
@@ -181,7 +184,7 @@ const CompromissoDetailsModal: React.FC<Props> = ({
         </ScrollView>
 
         {/* Ações */}
-        <View style={styles.actions}>
+        <View style={[styles.actions, { paddingBottom: insets.bottom || 16 }]}>
           <TouchableOpacity
             style={styles.editButton}
             onPress={() => onEdit(compromisso)}
@@ -327,7 +330,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     padding: 16,
-    paddingBottom: 32,
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#DEE2E6',

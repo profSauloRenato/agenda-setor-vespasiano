@@ -1,6 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  Animated,
+  Dimensions,
+  Keyboard,
   Modal,
   Platform,
   ScrollView,
@@ -11,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { ICompromissoPessoal } from '../../../../domain/models/ICompromissoPessoal';
 import {
@@ -32,11 +36,7 @@ interface Props {
 const toLocalDatetime = (iso: string): Date => new Date(iso);
 
 const formatDateLabel = (date: Date): string =>
-  date.toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
+  date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
 const formatTimeLabel = (date: Date): string =>
   date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -50,7 +50,6 @@ const SEMANAS_MES = [
   { label: '5ª', value: 5 },
 ];
 
-// Retorna qual é a Nª semana do mês para uma data
 const semanaDoMesParaData = (date: Date): number => Math.ceil(date.getDate() / 7);
 
 // -----------------------------------------------------------
@@ -66,10 +65,7 @@ const DateTimeField: React.FC<{
   const [show, setShow] = useState(false);
   const [mode, setMode] = useState<DateTimePickerMode>('date');
 
-  const openPicker = (m: DateTimePickerMode) => {
-    setMode(m);
-    setShow(true);
-  };
+  const openPicker = (m: DateTimePickerMode) => { setMode(m); setShow(true); };
 
   const handleChange = (_: any, selected?: Date) => {
     if (Platform.OS === 'android') setShow(false);
@@ -131,6 +127,29 @@ export const CompromissoFormModal: React.FC<Props> = ({
   compromissoToEdit,
   isSubmitting,
 }) => {
+  const insets = useSafeAreaInsets();
+  const screenHeight = Dimensions.get('window').height;
+  const keyboardOffset = useRef(new Animated.Value(0)).current;
+  const maxModalHeight = useRef(new Animated.Value(screenHeight * 0.92)).current;
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', (e) => {
+      const kh = e.endCoordinates.height;
+      const available = screenHeight - kh - insets.top - 16;
+      Animated.parallel([
+        Animated.timing(keyboardOffset, { toValue: kh, duration: e.duration || 250, useNativeDriver: false }),
+        Animated.timing(maxModalHeight, { toValue: available, duration: e.duration || 250, useNativeDriver: false }),
+      ]).start();
+    });
+    const hide = Keyboard.addListener('keyboardDidHide', () => {
+      Animated.parallel([
+        Animated.timing(keyboardOffset, { toValue: 0, duration: 250, useNativeDriver: false }),
+        Animated.timing(maxModalHeight, { toValue: screenHeight * 0.92, duration: 250, useNativeDriver: false }),
+      ]).start();
+    });
+    return () => { show.remove(); hide.remove(); };
+  }, [keyboardOffset, maxModalHeight]);
+
   const isEditing = !!compromissoToEdit;
 
   // ------- Estado do formulário -------
@@ -141,25 +160,21 @@ export const CompromissoFormModal: React.FC<Props> = ({
   const [dataFim, setDataFim] = useState(new Date());
   const [recorrente, setRecorrente] = useState(false);
   const [recorrenciaTipo, setRecorrenciaTipo] = useState<'semanal' | 'mensal'>('semanal');
-
-  // Mensal
   const [modoMensal, setModoMensal] = useState<ModoMensal>('dia_fixo');
   const [semanaSelecionada, setSemanaSelecionada] = useState<number>(1);
   const [diaSemana, setDiaSemana] = useState<number>(1);
-
   const [temRecorrenciaFim, setTemRecorrenciaFim] = useState(false);
   const [recorrenciaFim, setRecorrenciaFim] = useState(new Date());
   const [showRecorrenciaFimPicker, setShowRecorrenciaFimPicker] = useState(false);
   const [alertasSelecionados, setAlertasSelecionados] = useState<number[]>([]);
 
-  // ------- Preenche formulário ao editar -------
+  // ------- Preenche formulário ao abrir -------
   useEffect(() => {
     if (isVisible) {
       if (compromissoToEdit) {
         setTitulo(compromissoToEdit.titulo);
         setDescricao(compromissoToEdit.descricao ?? '');
         setDataInicio(toLocalDatetime(compromissoToEdit.data_inicio));
-
         if (compromissoToEdit.data_fim) {
           setTemDataFim(true);
           setDataFim(toLocalDatetime(compromissoToEdit.data_fim));
@@ -167,11 +182,8 @@ export const CompromissoFormModal: React.FC<Props> = ({
           setTemDataFim(false);
           setDataFim(new Date());
         }
-
         setRecorrente(compromissoToEdit.recorrente);
         setRecorrenciaTipo(compromissoToEdit.recorrencia_tipo ?? 'semanal');
-
-        // Modo mensal
         if (
           compromissoToEdit.recorrencia_semana_do_mes !== null &&
           compromissoToEdit.recorrencia_dia_semana !== null
@@ -184,7 +196,6 @@ export const CompromissoFormModal: React.FC<Props> = ({
           setSemanaSelecionada(semanaDoMesParaData(toLocalDatetime(compromissoToEdit.data_inicio)));
           setDiaSemana(toLocalDatetime(compromissoToEdit.data_inicio).getDay());
         }
-
         if (compromissoToEdit.recorrencia_fim) {
           setTemRecorrenciaFim(true);
           setRecorrenciaFim(new Date(compromissoToEdit.recorrencia_fim));
@@ -192,10 +203,8 @@ export const CompromissoFormModal: React.FC<Props> = ({
           setTemRecorrenciaFim(false);
           setRecorrenciaFim(new Date());
         }
-
         setAlertasSelecionados(compromissoToEdit.alertas.map((a) => a.horas_antes));
       } else {
-        // Novo — reset
         setTitulo('');
         setDescricao('');
         const agora = new Date();
@@ -214,7 +223,6 @@ export const CompromissoFormModal: React.FC<Props> = ({
     }
   }, [isVisible, compromissoToEdit]);
 
-  // Atualiza semana/dia quando dataInicio muda e modo é dia_fixo
   useEffect(() => {
     if (modoMensal === 'dia_fixo') {
       setSemanaSelecionada(semanaDoMesParaData(dataInicio));
@@ -222,26 +230,19 @@ export const CompromissoFormModal: React.FC<Props> = ({
     }
   }, [dataInicio, modoMensal]);
 
-  // ------- Label de resumo da recorrência -------
   const labelRecorrencia = (): string => {
-    if (recorrenciaTipo === 'semanal') {
-      return `Toda ${DIAS_SEMANA[dataInicio.getDay()]}`;
-    }
-    if (modoMensal === 'dia_fixo') {
-      return `Todo dia ${dataInicio.getDate()} do mês`;
-    }
+    if (recorrenciaTipo === 'semanal') return `Toda ${DIAS_SEMANA[dataInicio.getDay()]}`;
+    if (modoMensal === 'dia_fixo') return `Todo dia ${dataInicio.getDate()} do mês`;
     const semanaLabel = SEMANAS_MES.find((s) => s.value === semanaSelecionada)?.label ?? '1ª';
     return `Toda ${semanaLabel} ${DIAS_SEMANA[diaSemana]} do mês`;
   };
 
-  // ------- Toggles de alerta -------
   const toggleAlerta = (horas: number) => {
     setAlertasSelecionados((prev) =>
       prev.includes(horas) ? prev.filter((h) => h !== horas) : [...prev, horas],
     );
   };
 
-  // ------- Submit -------
   const handleSave = async () => {
     if (!titulo.trim()) {
       Alert.alert('Atenção', 'O título é obrigatório.');
@@ -256,16 +257,12 @@ export const CompromissoFormModal: React.FC<Props> = ({
       return;
     }
 
-    // Monta campos de recorrência mensal
     const recorrenciaSemanaDoMes =
       recorrente && recorrenciaTipo === 'mensal' && modoMensal === 'dia_semana'
-        ? semanaSelecionada
-        : null;
-
+        ? semanaSelecionada : null;
     const recorrenciaDiaSemana =
       recorrente && recorrenciaTipo === 'mensal' && modoMensal === 'dia_semana'
-        ? diaSemana
-        : null;
+        ? diaSemana : null;
 
     const params: CreateCompromissoParams = {
       titulo: titulo.trim(),
@@ -276,8 +273,7 @@ export const CompromissoFormModal: React.FC<Props> = ({
       recorrencia_tipo: recorrente ? recorrenciaTipo : null,
       recorrencia_fim:
         recorrente && temRecorrenciaFim
-          ? recorrenciaFim.toISOString().split('T')[0]
-          : null,
+          ? recorrenciaFim.toISOString().split('T')[0] : null,
       recorrencia_semana_do_mes: recorrenciaSemanaDoMes,
       recorrencia_dia_semana: recorrenciaDiaSemana,
       alertas: alertasSelecionados.map((h) => ({ horas_antes: h })),
@@ -292,247 +288,233 @@ export const CompromissoFormModal: React.FC<Props> = ({
 
   // ------- Render -------
   return (
-    <Modal visible={isVisible} animationType="slide" presentationStyle="pageSheet">
-      <View style={styles.container}>
-
-        {/* Cabeçalho */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.headerButton}>
-            <Text style={styles.headerButtonText}>Cancelar</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>
+    <Modal visible={isVisible} transparent animationType="slide">
+      <View style={styles.overlay}>
+        <TouchableOpacity style={styles.dismissArea} activeOpacity={1} onPress={onClose} />
+        <Animated.View
+          style={[
+            styles.modalBox,
+            { marginBottom: keyboardOffset, maxHeight: maxModalHeight, paddingBottom: insets.bottom || 12 },
+          ]}
+        >
+          <Text style={styles.modalTitle}>
             {isEditing ? 'Editar Compromisso' : 'Novo Compromisso'}
           </Text>
-          <TouchableOpacity
-            onPress={handleSave}
-            style={[styles.headerButton, isSubmitting && styles.headerButtonDisabled]}
-            disabled={isSubmitting}
-          >
-            <Text style={[styles.headerButtonText, styles.headerButtonSave]}>
-              {isSubmitting ? 'Salvando...' : 'Salvar'}
-            </Text>
-          </TouchableOpacity>
-        </View>
 
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
-          {/* Título */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Título *</Text>
-            <TextInput
-              style={styles.input}
-              value={titulo}
-              onChangeText={setTitulo}
-              placeholder="Ex: Consulta médica"
-              placeholderTextColor="#AAA"
-              maxLength={100}
-            />
-          </View>
-
-          {/* Descrição */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Descrição (opcional)</Text>
-            <TextInput
-              style={[styles.input, styles.inputMultiline]}
-              value={descricao}
-              onChangeText={setDescricao}
-              placeholder="Observações sobre o compromisso..."
-              placeholderTextColor="#AAA"
-              multiline
-              numberOfLines={3}
-              maxLength={500}
-            />
-          </View>
-
-          {/* Data de início */}
-          <DateTimeField
-            label="Data e hora de início *"
-            value={dataInicio}
-            onChange={setDataInicio}
-          />
-
-          {/* Data de fim */}
-          <View style={styles.fieldGroup}>
-            <View style={styles.switchRow}>
-              <Text style={styles.label}>Definir horário de término</Text>
-              <Switch
-                value={temDataFim}
-                onValueChange={setTemDataFim}
-                trackColor={{ false: '#CCC', true: '#17A2B8' }}
-                thumbColor="#fff"
-              />
-            </View>
-            {temDataFim && (
-              <DateTimeField
-                label="Data e hora de término"
-                value={dataFim}
-                onChange={setDataFim}
-              />
-            )}
-          </View>
-
-          {/* Recorrência */}
-          <View style={styles.fieldGroup}>
-            <View style={styles.switchRow}>
-              <Text style={styles.label}>Compromisso recorrente</Text>
-              <Switch
-                value={recorrente}
-                onValueChange={setRecorrente}
-                trackColor={{ false: '#CCC', true: '#17A2B8' }}
-                thumbColor="#fff"
+            {/* Título */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Título *</Text>
+              <TextInput
+                style={styles.input}
+                value={titulo}
+                onChangeText={setTitulo}
+                placeholder="Ex: Consulta médica"
+                placeholderTextColor="#AAA"
+                maxLength={100}
               />
             </View>
 
-            {recorrente && (
-              <View style={styles.recorrenciaBox}>
+            {/* Descrição */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Descrição (opcional)</Text>
+              <TextInput
+                style={[styles.input, styles.inputMultiline]}
+                value={descricao}
+                onChangeText={setDescricao}
+                placeholder="Observações sobre o compromisso..."
+                placeholderTextColor="#AAA"
+                multiline
+                numberOfLines={3}
+                maxLength={500}
+              />
+            </View>
 
-                {/* Tipo: Semanal / Mensal */}
-                <Text style={styles.subLabel}>Repetir:</Text>
-                <View style={styles.chipRow}>
-                  {RECORRENCIA_OPCOES.map((op) => (
+            {/* Data de início */}
+            <DateTimeField
+              label="Data e hora de início *"
+              value={dataInicio}
+              onChange={setDataInicio}
+            />
+
+            {/* Data de fim */}
+            <View style={styles.fieldGroup}>
+              <View style={styles.switchRow}>
+                <Text style={styles.label}>Definir horário de término</Text>
+                <Switch
+                  value={temDataFim}
+                  onValueChange={setTemDataFim}
+                  trackColor={{ false: '#CCC', true: '#17A2B8' }}
+                  thumbColor="#fff"
+                />
+              </View>
+              {temDataFim && (
+                <DateTimeField label="Data e hora de término" value={dataFim} onChange={setDataFim} />
+              )}
+            </View>
+
+            {/* Recorrência */}
+            <View style={styles.fieldGroup}>
+              <View style={styles.switchRow}>
+                <Text style={styles.label}>Compromisso recorrente</Text>
+                <Switch
+                  value={recorrente}
+                  onValueChange={setRecorrente}
+                  trackColor={{ false: '#CCC', true: '#17A2B8' }}
+                  thumbColor="#fff"
+                />
+              </View>
+
+              {recorrente && (
+                <View style={styles.recorrenciaBox}>
+                  <Text style={styles.subLabel}>Repetir:</Text>
+                  <View style={styles.chipRow}>
+                    {RECORRENCIA_OPCOES.map((op) => (
+                      <TouchableOpacity
+                        key={op.value}
+                        style={[styles.chip, recorrenciaTipo === op.value && styles.chipSelected]}
+                        onPress={() => setRecorrenciaTipo(op.value)}
+                      >
+                        <Text style={[styles.chipText, recorrenciaTipo === op.value && styles.chipTextSelected]}>
+                          {op.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  {recorrenciaTipo === 'mensal' && (
+                    <View style={styles.modoMensalBox}>
+                      <Text style={styles.subLabel}>Modo de repetição mensal:</Text>
+                      <View style={styles.radioRow}>
+                        <TouchableOpacity style={styles.radioOption} onPress={() => setModoMensal('dia_fixo')}>
+                          <View style={[styles.radioCircle, modoMensal === 'dia_fixo' && styles.radioCircleSelected]} />
+                          <Text style={styles.radioLabel}>Todo dia {dataInicio.getDate()} do mês</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.radioOption} onPress={() => setModoMensal('dia_semana')}>
+                          <View style={[styles.radioCircle, modoMensal === 'dia_semana' && styles.radioCircleSelected]} />
+                          <Text style={styles.radioLabel}>Dia da semana</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {modoMensal === 'dia_semana' && (
+                        <View style={styles.diaSemanaBox}>
+                          <Text style={styles.subLabel}>Qual semana do mês?</Text>
+                          <View style={styles.chipRow}>
+                            {SEMANAS_MES.map((s) => (
+                              <TouchableOpacity
+                                key={s.value}
+                                style={[styles.chipSmall, semanaSelecionada === s.value && styles.chipSelected]}
+                                onPress={() => setSemanaSelecionada(s.value)}
+                              >
+                                <Text style={[styles.chipTextSmall, semanaSelecionada === s.value && styles.chipTextSelected]}>
+                                  {s.label}
+                                </Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                          <Text style={[styles.subLabel, { marginTop: 10 }]}>Qual dia da semana?</Text>
+                          <View style={styles.chipRow}>
+                            {DIAS_SEMANA.map((dia, idx) => (
+                              <TouchableOpacity
+                                key={idx}
+                                style={[styles.chipSmall, diaSemana === idx && styles.chipSelected]}
+                                onPress={() => setDiaSemana(idx)}
+                              >
+                                <Text style={[styles.chipTextSmall, diaSemana === idx && styles.chipTextSelected]}>
+                                  {dia}
+                                </Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                  )}
+
+                  <View style={styles.resumoBox}>
+                    <Text style={styles.resumoText}>🔁 {labelRecorrencia()}</Text>
+                  </View>
+
+                  <View style={styles.switchRow}>
+                    <Text style={styles.subLabel}>Definir data de fim</Text>
+                    <Switch
+                      value={temRecorrenciaFim}
+                      onValueChange={setTemRecorrenciaFim}
+                      trackColor={{ false: '#CCC', true: '#17A2B8' }}
+                      thumbColor="#fff"
+                    />
+                  </View>
+
+                  {temRecorrenciaFim && (
+                    <View>
+                      <TouchableOpacity
+                        style={styles.dateTimeButton}
+                        onPress={() => setShowRecorrenciaFimPicker(true)}
+                      >
+                        <Text style={styles.dateTimeButtonText}>
+                          📅 Repetir até: {formatDateLabel(recorrenciaFim)}
+                        </Text>
+                      </TouchableOpacity>
+                      {showRecorrenciaFimPicker && (
+                        <DateTimePicker
+                          value={recorrenciaFim}
+                          mode="date"
+                          display="default"
+                          minimumDate={dataInicio}
+                          onChange={(_, date) => {
+                            if (Platform.OS === 'android') setShowRecorrenciaFimPicker(false);
+                            if (date) setRecorrenciaFim(date);
+                          }}
+                        />
+                      )}
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+
+            {/* Alertas */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>🔔 Alertas (opcional)</Text>
+              <Text style={styles.subLabel}>Selecione quando deseja ser lembrado:</Text>
+              <View style={styles.alertasGrid}>
+                {HORAS_OPCOES.map((op) => {
+                  const selecionado = alertasSelecionados.includes(op.value);
+                  return (
                     <TouchableOpacity
                       key={op.value}
-                      style={[styles.chip, recorrenciaTipo === op.value && styles.chipSelected]}
-                      onPress={() => setRecorrenciaTipo(op.value)}
+                      style={[styles.alertaChip, selecionado && styles.alertaChipSelected]}
+                      onPress={() => toggleAlerta(op.value)}
                     >
-                      <Text style={[styles.chipText, recorrenciaTipo === op.value && styles.chipTextSelected]}>
+                      <Text style={[styles.alertaChipText, selecionado && styles.alertaChipTextSelected]}>
                         {op.label}
                       </Text>
                     </TouchableOpacity>
-                  ))}
-                </View>
-
-                {/* Modo mensal */}
-                {recorrenciaTipo === 'mensal' && (
-                  <View style={styles.modoMensalBox}>
-                    <Text style={styles.subLabel}>Modo de repetição mensal:</Text>
-
-                    {/* Radio: Dia fixo vs Dia da semana */}
-                    <View style={styles.radioRow}>
-                      <TouchableOpacity
-                        style={styles.radioOption}
-                        onPress={() => setModoMensal('dia_fixo')}
-                      >
-                        <View style={[styles.radioCircle, modoMensal === 'dia_fixo' && styles.radioCircleSelected]} />
-                        <Text style={styles.radioLabel}>
-                          Todo dia {dataInicio.getDate()} do mês
-                        </Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={styles.radioOption}
-                        onPress={() => setModoMensal('dia_semana')}
-                      >
-                        <View style={[styles.radioCircle, modoMensal === 'dia_semana' && styles.radioCircleSelected]} />
-                        <Text style={styles.radioLabel}>Dia da semana</Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    {/* Seletor de Nª semana + dia da semana */}
-                    {modoMensal === 'dia_semana' && (
-                      <View style={styles.diaSemanaBox}>
-                        <Text style={styles.subLabel}>Qual semana do mês?</Text>
-                        <View style={styles.chipRow}>
-                          {SEMANAS_MES.map((s) => (
-                            <TouchableOpacity
-                              key={s.value}
-                              style={[styles.chipSmall, semanaSelecionada === s.value && styles.chipSelected]}
-                              onPress={() => setSemanaSelecionada(s.value)}
-                            >
-                              <Text style={[styles.chipTextSmall, semanaSelecionada === s.value && styles.chipTextSelected]}>
-                                {s.label}
-                              </Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-
-                        <Text style={[styles.subLabel, { marginTop: 10 }]}>Qual dia da semana?</Text>
-                        <View style={styles.chipRow}>
-                          {DIAS_SEMANA.map((dia, idx) => (
-                            <TouchableOpacity
-                              key={idx}
-                              style={[styles.chipSmall, diaSemana === idx && styles.chipSelected]}
-                              onPress={() => setDiaSemana(idx)}
-                            >
-                              <Text style={[styles.chipTextSmall, diaSemana === idx && styles.chipTextSelected]}>
-                                {dia}
-                              </Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      </View>
-                    )}
-                  </View>
-                )}
-
-                {/* Resumo da recorrência */}
-                <View style={styles.resumoBox}>
-                  <Text style={styles.resumoText}>🔁 {labelRecorrencia()}</Text>
-                </View>
-
-                {/* Fim da recorrência */}
-                <View style={styles.switchRow}>
-                  <Text style={styles.subLabel}>Definir data de fim</Text>
-                  <Switch
-                    value={temRecorrenciaFim}
-                    onValueChange={setTemRecorrenciaFim}
-                    trackColor={{ false: '#CCC', true: '#17A2B8' }}
-                    thumbColor="#fff"
-                  />
-                </View>
-
-                {temRecorrenciaFim && (
-                  <View>
-                    <TouchableOpacity
-                      style={styles.dateTimeButton}
-                      onPress={() => setShowRecorrenciaFimPicker(true)}
-                    >
-                      <Text style={styles.dateTimeButtonText}>
-                        📅 Repetir até: {formatDateLabel(recorrenciaFim)}
-                      </Text>
-                    </TouchableOpacity>
-                    {showRecorrenciaFimPicker && (
-                      <DateTimePicker
-                        value={recorrenciaFim}
-                        mode="date"
-                        display="default"
-                        minimumDate={dataInicio}
-                        onChange={(_, date) => {
-                          if (Platform.OS === 'android') setShowRecorrenciaFimPicker(false);
-                          if (date) setRecorrenciaFim(date);
-                        }}
-                      />
-                    )}
-                  </View>
-                )}
-
+                  );
+                })}
               </View>
-            )}
-          </View>
-
-          {/* Alertas */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>🔔 Alertas (opcional)</Text>
-            <Text style={styles.subLabel}>Selecione quando deseja ser lembrado:</Text>
-            <View style={styles.alertasGrid}>
-              {HORAS_OPCOES.map((op) => {
-                const selecionado = alertasSelecionados.includes(op.value);
-                return (
-                  <TouchableOpacity
-                    key={op.value}
-                    style={[styles.alertaChip, selecionado && styles.alertaChipSelected]}
-                    onPress={() => toggleAlerta(op.value)}
-                  >
-                    <Text style={[styles.alertaChipText, selecionado && styles.alertaChipTextSelected]}>
-                      {op.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
             </View>
+
+          </ScrollView>
+
+          {/* Botões */}
+          <View style={styles.footer}>
+            <TouchableOpacity style={styles.btnCancel} onPress={onClose}>
+              <Text style={styles.btnCancelText}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.btnSave, isSubmitting && { opacity: 0.6 }]}
+              onPress={handleSave}
+              disabled={isSubmitting}
+            >
+              <Text style={styles.btnSaveText}>
+                {isSubmitting ? 'Salvando...' : isEditing ? 'Salvar Compromisso' : 'Criar Compromisso'}
+              </Text>
+            </TouchableOpacity>
           </View>
 
-        </ScrollView>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -542,50 +524,59 @@ export const CompromissoFormModal: React.FC<Props> = ({
 // Estilos
 // -----------------------------------------------------------
 const styles = StyleSheet.create({
-  container: {
+  overlay: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
   },
-  header: {
+  dismissArea: {
+    flex: 1,
+  },
+  modalBox: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    flexShrink: 1,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#0A3D62',
+    marginBottom: 16,
+  },
+  footer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#0A3D62',
-    paddingTop: 50,
-    paddingBottom: 15,
-    paddingHorizontal: 16,
+    gap: 10,
+    paddingTop: 12,
   },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  headerButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-    minWidth: 70,
-  },
-  headerButtonDisabled: {
-    opacity: 0.5,
-  },
-  headerButtonText: {
-    fontSize: 15,
-    color: '#BEE5EB',
-  },
-  headerButtonSave: {
-    color: '#fff',
-    fontWeight: '700',
-    textAlign: 'right',
-  },
-  scroll: {
+  btnCancel: {
     flex: 1,
+    backgroundColor: '#6C757D',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
   },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
+  btnCancelText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  btnSave: {
+    flex: 2,
+    backgroundColor: '#3CB371',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  btnSaveText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
   },
   fieldGroup: {
-    marginBottom: 20,
+    marginBottom: 18,
   },
   label: {
     fontSize: 14,
@@ -599,14 +590,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: '#F8F9FA',
     borderWidth: 1,
     borderColor: '#DEE2E6',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    color: "#333",
+    color: '#333',
   },
   inputMultiline: {
     minHeight: 80,
@@ -618,7 +609,7 @@ const styles = StyleSheet.create({
   },
   dateTimeButton: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F8F9FA',
     borderWidth: 1,
     borderColor: '#DEE2E6',
     borderRadius: 8,

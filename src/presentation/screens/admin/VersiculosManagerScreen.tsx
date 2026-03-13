@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Dimensions,
   FlatList,
   Keyboard,
   Modal,
@@ -41,25 +42,27 @@ const VersiculosManagerScreen: React.FC = () => {
   const mensagemService = useMensagemAdminService();
   const notificationService = useNotificationService();
   const insets = useSafeAreaInsets();
+  const screenHeight = Dimensions.get("window").height;
   const keyboardOffset = useRef(new Animated.Value(0)).current;
+  const maxModalHeight = useRef(new Animated.Value(screenHeight * 0.85)).current;
 
   useEffect(() => {
     const show = Keyboard.addListener("keyboardDidShow", (e) => {
-      Animated.timing(keyboardOffset, {
-        toValue: e.endCoordinates.height,
-        duration: e.duration || 250,
-        useNativeDriver: false,
-      }).start();
+      const kh = e.endCoordinates.height;
+      const available = screenHeight - kh - insets.top - 16;
+      Animated.parallel([
+        Animated.timing(keyboardOffset, { toValue: kh, duration: e.duration || 250, useNativeDriver: false }),
+        Animated.timing(maxModalHeight, { toValue: available, duration: e.duration || 250, useNativeDriver: false }),
+      ]).start();
     });
     const hide = Keyboard.addListener("keyboardDidHide", () => {
-      Animated.timing(keyboardOffset, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: false,
-      }).start();
+      Animated.parallel([
+        Animated.timing(keyboardOffset, { toValue: 0, duration: 250, useNativeDriver: false }),
+        Animated.timing(maxModalHeight, { toValue: screenHeight * 0.85, duration: 250, useNativeDriver: false }),
+      ]).start();
     });
     return () => { show.remove(); hide.remove(); };
-  }, [keyboardOffset]);
+  }, [keyboardOffset, maxModalHeight]);
 
   const [aba, setAba] = useState<Aba>("versiculos");
 
@@ -294,8 +297,7 @@ const VersiculosManagerScreen: React.FC = () => {
       <Modal visible={isFormVVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <TouchableOpacity style={styles.modalDismiss} activeOpacity={1} onPress={() => setIsFormVVisible(false)} />
-          <Animated.View style={[styles.modalBox, { marginBottom: keyboardOffset, paddingBottom: insets.bottom || 12 }]}>
-            <Text style={styles.modalTitle}>{versiculoToEdit ? "Editar Versículo" : "Novo Versículo"}</Text>
+          <Animated.View style={[styles.modalBox, { marginBottom: keyboardOffset, maxHeight: maxModalHeight, paddingBottom: insets.bottom || 12 }]}>
             <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 8 }}>
               <Text style={styles.label}>Data</Text>
               <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
@@ -314,7 +316,7 @@ const VersiculosManagerScreen: React.FC = () => {
                 <Text style={styles.modalBtnText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.modalBtn, { backgroundColor: "#3CB371" }]} onPress={handleSaveV} disabled={isSubmittingV}>
-                <Text style={styles.modalBtnText}>{versiculoToEdit ? "Salvar Versículo" : "Criar Versículo"}</Text>
+                <Text style={styles.modalBtnText}>{isSubmittingV ? "Salvando..." : "Criar Versículo"}</Text>
               </TouchableOpacity>
             </View>
           </Animated.View>
@@ -325,7 +327,7 @@ const VersiculosManagerScreen: React.FC = () => {
       <Modal visible={isFormMVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <TouchableOpacity style={styles.modalDismiss} activeOpacity={1} onPress={() => setIsFormMVisible(false)} />
-          <Animated.View style={[styles.modalBox, { marginBottom: keyboardOffset, paddingBottom: insets.bottom || 12 }]}>
+          <Animated.View style={[styles.modalBox, { marginBottom: keyboardOffset, maxHeight: maxModalHeight, paddingBottom: insets.bottom || 12 }]}>
             <Text style={styles.modalTitle}>{mensagemToEdit ? "Editar Mensagem" : "Nova Mensagem"}</Text>
             <ScrollView>
               <Text style={styles.label}>Título</Text>
@@ -333,7 +335,7 @@ const VersiculosManagerScreen: React.FC = () => {
               <Text style={styles.label}>Texto</Text>
               <TextInput style={[styles.input, styles.textArea]} value={mTexto} onChangeText={setMTexto} placeholder="Ex: Lembramos a todos que..." multiline numberOfLines={4} />
 
-              <Text style={styles.label}>Abrangência (opcional)</Text>
+              <Text style={styles.label}>Localização (opcional)</Text>
               <View style={styles.pickerContainer}>
                 <SelectPicker
                   selectedValue={mLocalizacaoId}
@@ -380,7 +382,7 @@ const VersiculosManagerScreen: React.FC = () => {
                 <Text style={styles.modalBtnText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.modalBtn, { backgroundColor: "#3CB371" }]} onPress={handleSaveM} disabled={isSubmittingM}>
-                <Text style={styles.modalBtnText}>{mensagemToEdit ? "Salvar Mensagem" : "Criar Mensagem"}</Text>
+                <Text style={styles.modalBtnText}>{isSubmittingM ? "Salvando..." : "Criar Mensagem"}</Text>
               </TouchableOpacity>
             </View>
           </Animated.View>
@@ -416,7 +418,7 @@ const styles = StyleSheet.create({
   emptyText: { textAlign: "center", color: "#6C757D", marginTop: 30, fontSize: 14 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
   modalDismiss: { flex: 1 },
-  modalBox: { backgroundColor: "#fff", borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20, maxHeight: "90%" },
+  modalBox: { backgroundColor: "#fff", borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20 },
   modalTitle: { fontSize: 20, fontWeight: "bold", color: "#0A3D62", marginBottom: 15 },
   label: { fontSize: 14, fontWeight: "600", color: "#343A40", marginBottom: 5, marginTop: 10 },
   input: { borderWidth: 1, borderColor: "#CED4DA", borderRadius: 8, padding: 10, fontSize: 14, backgroundColor: "#fff", color: "#333" },
@@ -424,7 +426,7 @@ const styles = StyleSheet.create({
   dateButton: { borderWidth: 1, borderColor: "#CED4DA", borderRadius: 8, padding: 12, backgroundColor: "#fff" },
   dateButtonText: { fontSize: 14, color: "#333" },
   switchRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10 },
-  modalButtons: { flexDirection: "row", gap: 10, marginTop: 14, marginBottom: 14 },
+  modalButtons: { flexDirection: "row", gap: 10, marginTop: 20 },
   modalBtn: { flex: 1, padding: 12, borderRadius: 8, alignItems: "center" },
   modalBtnText: { color: "#fff", fontWeight: "bold", fontSize: 15 },
   pickerContainer: { borderWidth: 1, borderColor: "#CED4DA", borderRadius: 8, marginBottom: 5, backgroundColor: "#fff", overflow: "hidden" },
